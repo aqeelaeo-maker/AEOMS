@@ -28,7 +28,7 @@ import {
   hashPassword
 } from '../data/initialData';
 import { db, doc, handleFirestoreError, OperationType } from '../firebase/config';
-import { setDoc, getDoc } from 'firebase/firestore';
+import { setDoc, getDoc, deleteDoc } from 'firebase/firestore';
 
 const STORAGE_KEYS = {
   SCHOOLS: 'aeo_schools_v1',
@@ -83,8 +83,18 @@ async function syncToFirestore(collectionPath: string, docId: string, data: any)
     const docRef = doc(db, collectionPath, docId);
     await setDoc(docRef, data, { merge: true });
   } catch (err) {
-    // If offline or permission denied, record to console via skill-compliant handler
+    // If offline or permission notice, log safely
     console.warn(`Firestore sync notice (${collectionPath}/${docId}):`, err);
+  }
+}
+
+// Background delete from Firestore without blocking local UI execution
+async function deleteFromFirestore(collectionPath: string, docId: string): Promise<void> {
+  try {
+    const docRef = doc(db, collectionPath, docId);
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.warn(`Firestore delete notice (${collectionPath}/${docId}):`, err);
   }
 }
 
@@ -192,6 +202,9 @@ export function deleteSchool(emisCode: string, user: UserAccount): boolean {
     emisCode,
     target.name
   );
+
+  deleteFromFirestore('schools', emisCode);
+  deleteFromFirestore('users', 'user_' + emisCode);
 
   return true;
 }
@@ -595,6 +608,8 @@ export function deleteDocument(docId: string, user: UserAccount): void {
       target.schoolEmisCode
     );
   }
+
+  deleteFromFirestore('documents', docId);
 }
 
 export function toggleDocumentVerification(docId: string, user: UserAccount, notes?: string): void {

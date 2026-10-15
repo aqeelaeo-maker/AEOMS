@@ -522,6 +522,14 @@
       "schema": "Submission",
       "description": "Reporting submissions and AEO verification status"
     },
+    "/documents/{docId}": {
+      "schema": "DocumentUpload",
+      "description": "Physical proofs, utility bills, and photograph evidence"
+    },
+    "/test/{docId}": {
+      "schema": "TestConnection",
+      "description": "Firestore availability health check"
+    },
     "/auditLogs/{logId}": {
       "schema": "AuditLog",
       "description": "System activity logs for governance and transparency"

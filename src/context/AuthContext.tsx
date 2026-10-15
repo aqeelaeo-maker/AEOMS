@@ -8,6 +8,7 @@ import {
   initializeStorage
 } from '../services/storage';
 import { hashPassword } from '../data/initialData';
+import { ensureFirebaseAuth } from '../firebase/config';
 
 interface AuthContextType {
   currentUser: UserAccount | null;
@@ -40,6 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialize and retrieve cached session
   useEffect(() => {
     initializeStorage();
+    ensureFirebaseAuth().catch(err => console.warn('Auth init note:', err));
     try {
       const savedUserJson = localStorage.getItem(AUTH_STORAGE_KEY);
       if (savedUserJson) {

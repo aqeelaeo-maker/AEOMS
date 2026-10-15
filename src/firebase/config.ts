@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 export { doc };
-import { getAuth } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
 export const firebaseConfig = {
   apiKey: "AIzaSyDciLFoMu1xy266GB5BtO5UNxL_UKclagI",
@@ -63,6 +63,21 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   };
   console.error('Firestore Error:', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
+}
+
+// Ensures Firebase Auth has an active session for Firestore rules evaluation
+export async function ensureFirebaseAuth(): Promise<FirebaseUser | null> {
+  try {
+    if (auth.currentUser) {
+      return auth.currentUser;
+    }
+    const cred = await signInAnonymously(auth);
+    return cred.user;
+  } catch (err) {
+    // Graceful offline / restricted network fallback
+    console.warn('Firebase Auth note:', err);
+    return null;
+  }
 }
 
 // Validation connection test on initial boot
