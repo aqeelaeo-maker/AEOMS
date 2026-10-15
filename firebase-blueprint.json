@@ -1,0 +1,530 @@
+{
+  "entities": {
+    "School": {
+      "title": "School",
+      "description": "Educational institution registered under the AEO jurisdiction",
+      "type": "object",
+      "properties": {
+        "emisCode": {
+          "type": "string",
+          "description": "Unique Education Management Information System code",
+          "pattern": "^[0-9]{5,10}$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Official name of the school",
+          "maxLength": 150
+        },
+        "category": {
+          "type": "string",
+          "description": "Administrative sector of the school",
+          "enum": ["Public", "Private", "PEIMA", "PEF"]
+        },
+        "level": {
+          "type": "string",
+          "description": "Highest educational level offered",
+          "enum": ["Primary", "Elementary", "High", "Higher Secondary"]
+        },
+        "gender": {
+          "type": "string",
+          "description": "Student gender admission policy",
+          "enum": ["Boys", "Girls", "Co-Education"]
+        },
+        "tehsil": {
+          "type": "string",
+          "description": "Administrative Tehsil",
+          "maxLength": 60
+        },
+        "markaz": {
+          "type": "string",
+          "description": "Markaz or Cluster name under AEO",
+          "maxLength": 60
+        },
+        "unionCouncil": {
+          "type": "string",
+          "description": "Union council",
+          "maxLength": 60
+        },
+        "address": {
+          "type": "string",
+          "description": "Physical village or street location",
+          "maxLength": 200
+        },
+        "headTeacherName": {
+          "type": "string",
+          "description": "Principal or Head Teacher full name",
+          "maxLength": 100
+        },
+        "headTeacherPhone": {
+          "type": "string",
+          "description": "Official contact number",
+          "maxLength": 20
+        },
+        "shift": {
+          "type": "string",
+          "description": "Operating shift",
+          "enum": ["Morning", "Evening", "Double Shift"]
+        },
+        "establishmentYear": {
+          "type": "string",
+          "description": "Year founded",
+          "maxLength": 4
+        }
+      },
+      "required": ["emisCode", "name", "category", "level", "gender", "markaz"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User login credentials and role assignment",
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "description": "Login identifier (EMIS code for schools, email for AEO)",
+          "maxLength": 100
+        },
+        "role": {
+          "type": "string",
+          "description": "Authorization level in the system",
+          "enum": ["aeo_admin", "school_user", "supervisor"]
+        },
+        "schoolEmisCode": {
+          "type": "string",
+          "description": "Linked school EMIS code if school_user",
+          "maxLength": 20
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of official or school head",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "description": "Contact email address",
+          "maxLength": 100
+        },
+        "mustChangePassword": {
+          "type": "boolean",
+          "description": "Forces password change on initial login"
+        },
+        "passwordHash": {
+          "type": "string",
+          "description": "Securely hashed password",
+          "maxLength": 128
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last account update",
+          "maxLength": 40
+        }
+      },
+      "required": ["username", "role", "mustChangePassword"]
+    },
+    "EnrollmentRecord": {
+      "title": "EnrollmentRecord",
+      "description": "Grade- and gender-wise enrollment data for an academic cycle",
+      "type": "object",
+      "properties": {
+        "schoolEmisCode": {
+          "type": "string",
+          "description": "EMIS code of the school",
+          "maxLength": 20
+        },
+        "academicYear": {
+          "type": "string",
+          "description": "Academic year session",
+          "maxLength": 20
+        },
+        "totalBoys": {
+          "type": "number",
+          "description": "Total enrolled male students"
+        },
+        "totalGirls": {
+          "type": "number",
+          "description": "Total enrolled female students"
+        },
+        "grandTotal": {
+          "type": "number",
+          "description": "Cumulative student count"
+        },
+        "minorityStudents": {
+          "type": "number",
+          "description": "Enrolled religious minority students"
+        },
+        "specialNeedsStudents": {
+          "type": "number",
+          "description": "Children with special needs (CWSN)"
+        },
+        "averageAttendanceRate": {
+          "type": "number",
+          "description": "Average monthly student attendance rate percentage"
+        },
+        "dropoutCount": {
+          "type": "number",
+          "description": "Reported dropouts this academic period"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp",
+          "maxLength": 40
+        }
+      },
+      "required": ["schoolEmisCode", "academicYear", "grandTotal"]
+    },
+    "NSBRecord": {
+      "title": "NSBRecord",
+      "description": "Non-Salary Budget government allocation and expenditure statement",
+      "type": "object",
+      "properties": {
+        "schoolEmisCode": {
+          "type": "string",
+          "description": "School EMIS code",
+          "maxLength": 20
+        },
+        "financialYear": {
+          "type": "string",
+          "description": "Financial year",
+          "maxLength": 20
+        },
+        "openingBalance": {
+          "type": "number",
+          "description": "Unspent funds brought forward"
+        },
+        "totalAllocation": {
+          "type": "number",
+          "description": "Total annual NSB entitlement"
+        },
+        "fundsReceived": {
+          "type": "number",
+          "description": "Actual funds credited to school bank account"
+        },
+        "totalExpenditure": {
+          "type": "number",
+          "description": "Total spent across all budget heads"
+        },
+        "remainingBalance": {
+          "type": "number",
+          "description": "Unspent balance in account"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "Update timestamp",
+          "maxLength": 40
+        }
+      },
+      "required": ["schoolEmisCode", "financialYear", "fundsReceived"]
+    },
+    "FTFRecord": {
+      "title": "FTFRecord",
+      "description": "Farogh-e-Taleem Fund collections, committee approval, and disbursement",
+      "type": "object",
+      "properties": {
+        "schoolEmisCode": {
+          "type": "string",
+          "description": "School EMIS code",
+          "maxLength": 20
+        },
+        "financialYear": {
+          "type": "string",
+          "description": "Financial year",
+          "maxLength": 20
+        },
+        "totalCollected": {
+          "type": "number",
+          "description": "Total FTF student contributions collected"
+        },
+        "totalExpenditure": {
+          "type": "number",
+          "description": "Authorized expenditure"
+        },
+        "currentBalance": {
+          "type": "number",
+          "description": "Net available FTF balance"
+        },
+        "bankAccountTitle": {
+          "type": "string",
+          "description": "Designated official bank account title",
+          "maxLength": 100
+        },
+        "bankAccountNumber": {
+          "type": "string",
+          "description": "Official bank account number",
+          "maxLength": 50
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "Timestamp",
+          "maxLength": 40
+        }
+      },
+      "required": ["schoolEmisCode", "financialYear"]
+    },
+    "BuildingAndFacilities": {
+      "title": "BuildingAndFacilities",
+      "description": "Physical infrastructure, classrooms, safety, utilities, and labs",
+      "type": "object",
+      "properties": {
+        "schoolEmisCode": {
+          "type": "string",
+          "description": "School EMIS code",
+          "maxLength": 20
+        },
+        "ownership": {
+          "type": "string",
+          "description": "Building ownership status",
+          "enum": ["Government Owned", "Rented", "Donated", "Shelterless"]
+        },
+        "totalAreaMarlas": {
+          "type": "number",
+          "description": "Total land area in Marlas"
+        },
+        "coveredAreaSqFt": {
+          "type": "number",
+          "description": "Constructed covered area in square feet"
+        },
+        "totalClassrooms": {
+          "type": "number",
+          "description": "Total constructed classrooms"
+        },
+        "classroomsInUse": {
+          "type": "number",
+          "description": "Currently functional classrooms"
+        },
+        "dangerousClassrooms": {
+          "type": "number",
+          "description": "Classrooms declared dangerous or dilapidated"
+        },
+        "boundaryWallStatus": {
+          "type": "string",
+          "description": "Perimeter security wall condition",
+          "enum": ["Satisfactory", "Damaged / Partial", "No Boundary Wall"]
+        },
+        "mainGate": {
+          "type": "boolean",
+          "description": "Presence of functional iron entrance gate"
+        },
+        "electricityStatus": {
+          "type": "string",
+          "description": "WAPDA electricity availability",
+          "enum": ["Connected", "Disconnected", "No Connection"]
+        },
+        "drinkingWater": {
+          "type": "string",
+          "description": "Clean drinking water facility",
+          "enum": ["Filtration Plant", "Electric Pump", "Hand Pump", "Tap Water", "None"]
+        },
+        "studentToiletsFunctional": {
+          "type": "number",
+          "description": "Functional toilets for students"
+        },
+        "staffToiletsFunctional": {
+          "type": "number",
+          "description": "Functional toilets for staff"
+        },
+        "solarInstalled": {
+          "type": "boolean",
+          "description": "Solar PV system installed"
+        },
+        "solarCapacityKw": {
+          "type": "number",
+          "description": "Solar system capacity in Kilowatts (kW)"
+        },
+        "computerLab": {
+          "type": "boolean",
+          "description": "Equipped computer/IT lab"
+        },
+        "scienceLab": {
+          "type": "boolean",
+          "description": "High school science lab"
+        },
+        "playground": {
+          "type": "boolean",
+          "description": "Dedicated playground for sports"
+        },
+        "library": {
+          "type": "boolean",
+          "description": "School reading room or library"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "Timestamp",
+          "maxLength": 40
+        }
+      },
+      "required": ["schoolEmisCode", "ownership", "totalClassrooms"]
+    },
+    "StaffRecord": {
+      "title": "StaffRecord",
+      "description": "Sanctioned vs filled teaching and non-teaching posts",
+      "type": "object",
+      "properties": {
+        "schoolEmisCode": {
+          "type": "string",
+          "description": "School EMIS code",
+          "maxLength": 20
+        },
+        "sanctionedPostsTotal": {
+          "type": "number",
+          "description": "Total government sanctioned teaching posts"
+        },
+        "filledPostsTotal": {
+          "type": "number",
+          "description": "Total filled teaching posts"
+        },
+        "vacantPostsTotal": {
+          "type": "number",
+          "description": "Total vacant teaching posts"
+        },
+        "nonTeachingStaffCount": {
+          "type": "number",
+          "description": "Count of support staff (Class IV, Naib Qasid, Guard, Sweeper)"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "Timestamp",
+          "maxLength": 40
+        }
+      },
+      "required": ["schoolEmisCode"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "Official reporting period data submission and AEO approval status",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique submission identifier",
+          "maxLength": 50
+        },
+        "schoolEmisCode": {
+          "type": "string",
+          "description": "School EMIS code",
+          "maxLength": 20
+        },
+        "reportingPeriod": {
+          "type": "string",
+          "description": "Target reporting month or quarter (e.g. Q1 2026-27)",
+          "maxLength": 50
+        },
+        "status": {
+          "type": "string",
+          "description": "Review status of the school dossier",
+          "enum": ["draft", "submitted", "under_review", "approved", "returned"]
+        },
+        "submittedAt": {
+          "type": "string",
+          "description": "Submission ISO timestamp",
+          "maxLength": 40
+        },
+        "submittedBy": {
+          "type": "string",
+          "description": "Name or title of school official submitting",
+          "maxLength": 100
+        },
+        "reviewedAt": {
+          "type": "string",
+          "description": "AEO review ISO timestamp",
+          "maxLength": 40
+        },
+        "reviewedBy": {
+          "type": "string",
+          "description": "Name of AEO officer",
+          "maxLength": 100
+        },
+        "aeoComments": {
+          "type": "string",
+          "description": "Official remarks or directives from AEO",
+          "maxLength": 1000
+        },
+        "correctionsRequested": {
+          "type": "string",
+          "description": "Specific fields or modules returned for correction",
+          "maxLength": 500
+        }
+      },
+      "required": ["schoolEmisCode", "reportingPeriod", "status"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Tamper-evident audit trail of system operations and updates",
+      "type": "object",
+      "properties": {
+        "schoolEmisCode": {
+          "type": "string",
+          "description": "Target school EMIS code",
+          "maxLength": 20
+        },
+        "userId": {
+          "type": "string",
+          "description": "User account ID",
+          "maxLength": 100
+        },
+        "userRole": {
+          "type": "string",
+          "description": "Role of acting user",
+          "maxLength": 30
+        },
+        "action": {
+          "type": "string",
+          "description": "Performed operation (Create, Update, Submit, Approve, Return)",
+          "maxLength": 50
+        },
+        "moduleName": {
+          "type": "string",
+          "description": "Module affected (Profile, Enrollment, NSB, FTF, Facilities, Staff, Submission)",
+          "maxLength": 50
+        },
+        "details": {
+          "type": "string",
+          "description": "Human-readable summary of the modification",
+          "maxLength": 500
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "ISO timestamp of event",
+          "maxLength": 40
+        }
+      },
+      "required": ["action", "moduleName", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/schools/{schoolId}": {
+      "schema": "School",
+      "description": "Collection of schools under AEO jurisdiction"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Authenticated accounts and role assignments"
+    },
+    "/enrollment/{schoolId}": {
+      "schema": "EnrollmentRecord",
+      "description": "Gender and grade breakdown per school"
+    },
+    "/nsb/{schoolId}": {
+      "schema": "NSBRecord",
+      "description": "Non-Salary Budget allocations and expenditures"
+    },
+    "/ftf/{schoolId}": {
+      "schema": "FTFRecord",
+      "description": "Farogh-e-Taleem Fund records and balances"
+    },
+    "/facilities/{schoolId}": {
+      "schema": "BuildingAndFacilities",
+      "description": "Building infrastructure, utilities, and security condition"
+    },
+    "/staff/{schoolId}": {
+      "schema": "StaffRecord",
+      "description": "Staffing positions, vacancies, and teacher rosters"
+    },
+    "/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Reporting submissions and AEO verification status"
+    },
+    "/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "System activity logs for governance and transparency"
+    }
+  }
+}
