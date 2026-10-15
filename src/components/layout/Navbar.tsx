@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getSchools, exportDatabaseBackup, restoreDatabaseBackup } from '../../services/storage';
 import {
+  Menu,
   Building,
   Shield,
   Languages,
@@ -22,9 +23,15 @@ interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onOpenDossierPrint?: () => void;
+  onToggleSidebar?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenDossierPrint }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  activeTab,
+  setActiveTab,
+  onOpenDossierPrint,
+  onToggleSidebar
+}) => {
   const { currentUser, currentSchool, isAEO, isSupervisor, isSchoolUser, logout, selectedSchoolEmis, setSelectedSchoolEmis } = useAuth();
   const { language, setLanguage, t, isUrdu } = useLanguage();
 
@@ -66,35 +73,36 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenD
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
-        {/* Top Official Banner */}
-        <div className="bg-emerald-900 text-emerald-50 px-4 py-1.5 text-xs font-medium flex items-center justify-between">
+      {/* Top Panel in Green Colour */}
+      <header className="sticky top-0 z-40 bg-emerald-900 border-b border-emerald-800 shadow-md text-white">
+        {/* Top Official Sub-Banner */}
+        <div className="bg-emerald-950 text-emerald-100 px-4 py-1.5 text-xs font-medium border-b border-emerald-900/80 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span className="tracking-wide">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="tracking-wide font-semibold text-emerald-200">
               {isUrdu ? 'حکومت پنجاب · محکمہ سکول ایجوکیشن' : 'GOVERNMENT OF THE PUNJAB · SCHOOL EDUCATION DEPARTMENT'}
             </span>
-            <span className="text-emerald-400/80">/</span>
-            <span className="text-emerald-200">
-              {isUrdu ? 'دفتر معاون تعلیمی افسر (AEO) تحصیل پنڈی گھیب، ضلع اٹک' : 'Office of the Assistant Education Officer (AEO), Tehsil Pindi Gheb'}
+            <span className="text-emerald-500/80">/</span>
+            <span className="text-emerald-300 hidden sm:inline">
+              {isUrdu ? 'دفتر معاون تعلیمی افسر (AEO) تحصیل پنڈی گھیب، ضلع اٹک' : 'Office of the Assistant Education Officer (AEO), Tehsil Pindi Gheb, District Attock'}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
             {backupNotice && (
-              <span className="text-emerald-300 font-semibold text-[11px] flex items-center gap-1 animate-pulse">
+              <span className="text-amber-300 font-semibold text-[11px] flex items-center gap-1 animate-pulse">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 {backupNotice}
               </span>
             )}
 
             {/* Language Switcher */}
-            <div className="flex items-center bg-emerald-950/60 rounded-md p-0.5 border border-emerald-800">
+            <div className="flex items-center bg-emerald-900/90 rounded-md p-0.5 border border-emerald-700/80">
               <button
                 type="button"
                 onClick={() => setLanguage('en')}
                 className={`px-2 py-0.5 text-[11px] rounded transition-colors ${
-                  language === 'en' ? 'bg-emerald-700 text-white font-bold' : 'text-emerald-200 hover:text-white'
+                  language === 'en' ? 'bg-emerald-700 text-white font-bold' : 'text-emerald-300 hover:text-white'
                 }`}
               >
                 English
@@ -103,7 +111,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenD
                 type="button"
                 onClick={() => setLanguage('ur')}
                 className={`px-2 py-0.5 text-[11px] rounded transition-colors font-urdu ${
-                  language === 'ur' ? 'bg-emerald-700 text-white font-bold' : 'text-emerald-200 hover:text-white'
+                  language === 'ur' ? 'bg-emerald-700 text-white font-bold' : 'text-emerald-300 hover:text-white'
                 }`}
               >
                 اردو
@@ -112,69 +120,58 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenD
           </div>
         </div>
 
-        {/* Main Nav Bar */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Main Header Bar in Green Colour */}
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Left Brand */}
+            {/* Left Brand with Mobile Sidebar Hamburger */}
             <div className="flex items-center gap-3">
+              {onToggleSidebar && (
+                <button
+                  type="button"
+                  onClick={onToggleSidebar}
+                  className="p-2 -ml-2 text-emerald-200 hover:text-white hover:bg-emerald-800 rounded-lg md:hidden transition-colors"
+                  aria-label="Toggle navigation pane"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+              )}
+
               <button
                 onClick={() => setActiveTab('dashboard')}
                 className="flex items-center gap-2.5 text-left group"
               >
-                <div className="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center font-bold text-lg shadow-sm group-hover:bg-emerald-700 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center font-black text-lg shadow-xs border border-emerald-600 group-hover:bg-emerald-700 transition-colors">
                   AEO
                 </div>
                 <div>
-                  <h1 className="text-base font-bold text-slate-900 tracking-tight leading-snug group-hover:text-emerald-800 transition-colors">
+                  <h1 className="text-base font-bold text-white tracking-tight leading-snug group-hover:text-emerald-200 transition-colors">
                     {t('appTitle')}
                   </h1>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-emerald-200/90 hidden sm:block">
                     {isUrdu ? 'عوامی، پرائیویٹ، پیما اور پیف سکول مانیٹرنگ' : 'Public · Private · PEIMA · PEF Schools Monitoring'}
                   </p>
                 </div>
               </button>
             </div>
 
-            {/* School Selector for AEO / Supervisor */}
-            {(isAEO || isSupervisor) && (
-              <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5">
-                <SchoolIcon className="w-4 h-4 text-slate-500 shrink-0" />
-                <span className="text-xs text-slate-600 font-medium whitespace-nowrap">
-                  {isUrdu ? 'منتخب سکول:' : 'Focus School:'}
-                </span>
-                <select
-                  value={selectedSchoolEmis || ''}
-                  onChange={e => setSelectedSchoolEmis(e.target.value || null)}
-                  className="bg-transparent text-xs font-semibold text-slate-900 focus:outline-none cursor-pointer max-w-[220px] truncate"
-                >
-                  <option value="">{isUrdu ? 'تمام سکول (مرکزی جائزہ)' : 'Cluster Overview (All Schools)'}</option>
-                  {schools.map(s => (
-                    <option key={s.emisCode} value={s.emisCode}>
-                      {s.emisCode} - {s.name} ({s.category})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
             {/* Right User Status & Actions */}
             <div className="flex items-center gap-2 sm:gap-3">
               {currentUser ? (
                 <>
-                  {/* Role indicator pill */}
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg border border-slate-200">
-                    <div className="w-2 h-2 rounded-full bg-emerald-600"></div>
+                  {/* Role indicator card */}
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-950/70 rounded-lg border border-emerald-700/80">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
                     <div className="text-left">
-                      <div className="text-xs font-semibold text-slate-800 leading-tight">
+                      <div className="text-xs font-semibold text-white leading-tight">
                         {currentUser.displayName}
                       </div>
-                      <div className="text-[10px] text-slate-500 font-mono">
+                      <div className="text-[10px] text-emerald-300 font-mono">
                         {isAEO ? (
-                          <span className="text-emerald-800 font-medium">AEO Admin</span>
+                          <span className="text-amber-300 font-semibold">AEO Admin</span>
                         ) : isSupervisor ? (
-                          <span className="text-blue-800 font-medium">Supervisor (Read-Only)</span>
+                          <span className="text-blue-300 font-medium">Supervisor (Read-Only)</span>
                         ) : (
-                          <span className="text-amber-800 font-medium">EMIS: {currentUser.username}</span>
+                          <span className="text-emerald-300 font-medium">EMIS: {currentUser.username}</span>
                         )}
                       </div>
                     </div>
@@ -185,7 +182,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenD
                     <button
                       onClick={handleDownloadBackup}
                       title="Download JSON Database Backup"
-                      className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-slate-100 rounded-lg text-xs flex items-center gap-1 transition-colors"
+                      className="p-2 text-emerald-100 hover:text-white hover:bg-emerald-800 rounded-lg text-xs flex items-center gap-1 transition-colors"
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span className="text-[11px] font-medium">{isUrdu ? 'بیک اپ' : 'Backup'}</span>
@@ -193,7 +190,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenD
 
                     <label
                       title="Restore JSON Database Backup"
-                      className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-slate-100 rounded-lg text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                      className="p-2 text-emerald-100 hover:text-white hover:bg-emerald-800 rounded-lg text-xs flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <Upload className="w-3.5 h-3.5" />
                       <span className="text-[11px] font-medium">{isUrdu ? 'بحالی' : 'Restore'}</span>
@@ -204,7 +201,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenD
                   {/* Logout */}
                   <button
                     onClick={logout}
-                    className="p-2 text-slate-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors text-xs font-medium flex items-center gap-1"
+                    className="p-2 text-emerald-200 hover:text-rose-200 hover:bg-rose-900/40 rounded-lg transition-colors text-xs font-medium flex items-center gap-1"
                     title="Sign Out"
                   >
                     <LogOut className="w-4 h-4" />
@@ -214,7 +211,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenD
               ) : (
                 <button
                   onClick={() => setLoginModalOpen(true)}
-                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-colors"
+                  className="px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-sm border border-emerald-600 flex items-center gap-2 transition-colors"
                 >
                   <LogIn className="w-4 h-4" />
                   {t('login')}
@@ -224,11 +221,11 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab, onOpenD
               {/* Fast switch login modal trigger */}
               <button
                 onClick={() => setLoginModalOpen(true)}
-                className="px-2.5 py-1.5 border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-medium rounded-lg transition-colors hidden sm:flex items-center gap-1"
+                className="px-2.5 py-1.5 border border-emerald-700 bg-emerald-950/60 text-emerald-100 hover:bg-emerald-800 hover:text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
                 title="Switch School or Admin Role"
               >
-                <span>{isUrdu ? 'صارف بدلیں' : 'Switch Role'}</span>
-                <ChevronDown className="w-3 h-3 text-slate-400" />
+                <span className="hidden sm:inline">{isUrdu ? 'صارف بدلیں' : 'Switch Role'}</span>
+                <ChevronDown className="w-3 h-3 text-emerald-300" />
               </button>
             </div>
           </div>

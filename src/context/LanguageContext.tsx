@@ -30,8 +30,12 @@ export const translations: Translations = {
     ur: 'مرکزی ڈیش بورڈ'
   },
   schoolsDirectory: {
-    en: 'Schools Directory',
-    ur: 'سکولوں کی فہرست'
+    en: 'Schools',
+    ur: 'سکولز'
+  },
+  schools: {
+    en: 'Schools',
+    ur: 'سکولز'
   },
   schoolProfile: {
     en: 'School Profile',

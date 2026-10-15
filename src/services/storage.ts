@@ -138,6 +138,22 @@ export function saveSchool(school: School, user: UserAccount): void {
     schools[index] = school;
   } else {
     schools.push(school);
+    // Automatically provision initial school user account with temporary password = EMIS code
+    const users = getUsers();
+    if (!users.some(u => u.username === school.emisCode)) {
+      users.push({
+        id: 'user_' + school.emisCode,
+        username: school.emisCode,
+        displayName: `Head Teacher, ${school.name}`,
+        role: 'school_user',
+        schoolEmisCode: school.emisCode,
+        mustChangePassword: true,
+        passwordHash: `${school.emisCode}_initial_hash`,
+        createdAt: new Date().toISOString()
+      });
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+      syncToFirestore('users', 'user_' + school.emisCode, users[users.length - 1]);
+    }
   }
   localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(schools));
   syncToFirestore('schools', school.emisCode, school);
@@ -147,11 +163,37 @@ export function saveSchool(school: School, user: UserAccount): void {
     user.displayName,
     user.role,
     index >= 0 ? 'Update School Profile' : 'Register New School',
-    'School Profile',
+    'Schools',
     `Saved details for ${school.name} (EMIS: ${school.emisCode})`,
     school.emisCode,
     school.name
   );
+}
+
+export function deleteSchool(emisCode: string, user: UserAccount): boolean {
+  const schools = getSchools();
+  const target = schools.find(s => s.emisCode === emisCode);
+  if (!target) return false;
+
+  const updatedSchools = schools.filter(s => s.emisCode !== emisCode);
+  localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(updatedSchools));
+
+  // Also remove linked school user account
+  const users = getUsers().filter(u => u.username !== emisCode && u.schoolEmisCode !== emisCode);
+  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+
+  addAuditLog(
+    user.id,
+    user.displayName,
+    user.role,
+    'Delete School Record',
+    'Schools',
+    `Deleted school ${target.name} (EMIS: ${emisCode}) and revoked linked credentials.`,
+    emisCode,
+    target.name
+  );
+
+  return true;
 }
 
 // Users & Authentication

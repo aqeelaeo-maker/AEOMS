@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { Navbar } from './components/layout/Navbar';
-import { NavigationTabs } from './components/layout/NavigationTabs';
+import { Sidebar } from './components/layout/Sidebar';
 import { PasswordChangeModal } from './components/auth/PasswordChangeModal';
 import { AeoDashboard } from './components/dashboard/AeoDashboard';
+import { SchoolsListView } from './components/school/SchoolsListView';
 import { SchoolProfileView } from './components/school/SchoolProfileView';
 import { EnrollmentModule } from './components/school/EnrollmentModule';
 import { NSBModule } from './components/school/NSBModule';
@@ -17,21 +18,32 @@ import { ReportsHub } from './components/reports/ReportsHub';
 import { OfficialDossierPrint } from './components/reports/OfficialDossierPrint';
 import { AuditTrailView } from './components/audit/AuditTrailView';
 import { getSchools, getSubmissions, getSchoolByEmis } from './services/storage';
-import { School as SchoolIcon, ArrowLeft, Shield, Eye, AlertCircle } from 'lucide-react';
+import { School as SchoolIcon, ArrowLeft, ChevronDown, Eye, CheckCircle2 } from 'lucide-react';
 
 const MainLayout: React.FC = () => {
-  const { currentUser, currentSchool, isAEO, isSupervisor, isSchoolUser, selectedSchoolEmis, setSelectedSchoolEmis } = useAuth();
+  const {
+    currentUser,
+    currentSchool,
+    isAEO,
+    isSupervisor,
+    isSchoolUser,
+    selectedSchoolEmis,
+    setSelectedSchoolEmis
+  } = useAuth();
   const { t, isUrdu } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<string>(() => {
     return isSchoolUser ? 'profile' : 'dashboard';
   });
 
+  const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
   const [printDossierSchoolEmis, setPrintDossierSchoolEmis] = useState<string | null>(null);
 
   const schools = getSchools();
   const submissions = getSubmissions();
-  const pendingReviewsCount = submissions.filter(s => s.status === 'submitted' || s.status === 'under_review').length;
+  const pendingReviewsCount = submissions.filter(
+    s => s.status === 'submitted' || s.status === 'under_review'
+  ).length;
 
   // Active target school:
   // If school user, ALWAYS their assigned school. If AEO or Supervisor, the selected school or first school fallback.
@@ -51,132 +63,190 @@ const MainLayout: React.FC = () => {
 
   const printSchool = printDossierSchoolEmis ? getSchoolByEmis(printDossierSchoolEmis) || null : null;
 
+  const isSchoolModule = [
+    'profile',
+    'enrollment',
+    'nsb',
+    'ftf',
+    'facilities',
+    'staff',
+    'documents',
+    'submission'
+  ].includes(activeTab);
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans">
-      {/* Top Navbar */}
+      {/* Top Panel (Green Header) */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenDossierPrint={() => handleOpenPrintDossier()}
+        onToggleSidebar={() => setIsSidebarOpenMobile(!isSidebarOpenMobile)}
       />
 
-      {/* Navigation Sub-Tabs */}
-      <NavigationTabs
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        pendingReviewsCount={isAEO ? pendingReviewsCount : undefined}
-      />
+      {/* Main Layout: Left Pane (Green Sidebar with Tabs) + Right Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Pane in Green */}
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          pendingReviewsCount={isAEO ? pendingReviewsCount : undefined}
+          isOpenMobile={isSidebarOpenMobile}
+          onCloseMobile={() => setIsSidebarOpenMobile(false)}
+          onOpenDossierPrint={() => handleOpenPrintDossier()}
+        />
 
-      {/* Focus School Notification Bar for AEO / Supervisor */}
-      {(isAEO || isSupervisor) && selectedSchoolEmis && activeTab !== 'dashboard' && activeTab !== 'reports' && activeTab !== 'audit' && (
-        <div className="bg-emerald-950 text-emerald-100 px-4 py-2 border-b border-emerald-800 text-xs flex items-center justify-between">
-          <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <SchoolIcon className="w-4 h-4 text-emerald-400" />
-              <span>
-                {isUrdu ? 'آپ اس وقت معائنہ کر رہے ہیں:' : 'Currently Inspecting Record for:'}{' '}
-                <strong className="text-white font-bold">{activeSchool?.name}</strong>{' '}
-                <span className="font-mono text-emerald-300">(EMIS: {selectedSchoolEmis})</span>
-              </span>
+        {/* Right Main Content Pane */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+          {/* School-Wise Context Inspection Bar */}
+          {isSchoolModule && activeSchool && (
+            <div className="bg-emerald-950 text-white px-4 sm:px-6 py-2.5 border-b border-emerald-900 shrink-0 shadow-2xs">
+              <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+                {/* School Details & Identification */}
+                <div className="flex items-center gap-3 truncate">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-800 text-white flex items-center justify-center shrink-0 border border-emerald-600 font-bold">
+                    <SchoolIcon className="w-4 h-4" />
+                  </div>
+                  <div className="truncate">
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="font-bold text-sm text-white truncate">{activeSchool.name}</span>
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-400 text-slate-950">
+                        EMIS: {activeSchool.emisCode}
+                      </span>
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-medium bg-emerald-800 text-emerald-100">
+                        {activeSchool.category} · {activeSchool.level}
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-emerald-300 truncate">
+                      {isUrdu ? 'ہیڈ ٹیچر:' : 'Head Teacher:'} {activeSchool.headTeacherName} ({activeSchool.headTeacherPhone}) · Markaz: {activeSchool.markaz}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick School Switcher & Actions for AEO / Supervisor */}
+                {(isAEO || isSupervisor) && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="relative">
+                      <select
+                        value={selectedSchoolEmis || activeSchool.emisCode}
+                        onChange={e => setSelectedSchoolEmis(e.target.value)}
+                        className="text-xs bg-emerald-900 border border-emerald-700 text-white rounded-lg py-1.5 px-2.5 pr-7 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer max-w-[210px] truncate"
+                      >
+                        {schools.map(s => (
+                          <option key={s.emisCode} value={s.emisCode} className="bg-emerald-950 text-white">
+                            {s.emisCode} - {s.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-emerald-300 absolute right-2 top-2.5 pointer-events-none" />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('schools')}
+                      className="px-2.5 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg border border-emerald-600 transition-colors flex items-center gap-1"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>{isUrdu ? 'تمام سکولز لسٹ' : 'All Schools'}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
+          )}
 
-            <button
-              onClick={() => {
-                setSelectedSchoolEmis(null);
-                setActiveTab('dashboard');
-              }}
-              className="px-2.5 py-1 bg-emerald-800 hover:bg-emerald-700 text-white rounded text-[11px] font-semibold flex items-center gap-1 transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>{isUrdu ? 'کلسٹر جائزہ پر واپس جائیں' : 'Back to Cluster Overview'}</span>
-            </button>
-          </div>
+          {/* Module Views */}
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+            {/* Dashboard View */}
+            {activeTab === 'dashboard' && (
+              <AeoDashboard
+                onSelectSchool={handleSelectSchoolFromDashboard}
+                onOpenSubmissionReview={(subId) => {
+                  const sub = submissions.find(s => s.id === subId);
+                  if (sub) {
+                    setSelectedSchoolEmis(sub.schoolEmisCode);
+                    setActiveTab('submission');
+                  }
+                }}
+              />
+            )}
+
+            {/* Schools Management List View (Add, Edit, Delete, Inspect) */}
+            {activeTab === 'schools' && (
+              <SchoolsListView
+                onInspectSchool={handleSelectSchoolFromDashboard}
+              />
+            )}
+
+            {/* School Profile View */}
+            {activeTab === 'profile' && activeSchool && (
+              <SchoolProfileView school={activeSchool} />
+            )}
+
+            {/* Enrollment and Attendance View */}
+            {activeTab === 'enrollment' && activeSchool && (
+              <EnrollmentModule school={activeSchool} />
+            )}
+
+            {/* NSB Funds and Expenditure View */}
+            {activeTab === 'nsb' && activeSchool && (
+              <NSBModule school={activeSchool} />
+            )}
+
+            {/* FTF Collections and registers View */}
+            {activeTab === 'ftf' && activeSchool && (
+              <FTFModule school={activeSchool} />
+            )}
+
+            {/* Building and Facilities View */}
+            {activeTab === 'facilities' && activeSchool && (
+              <FacilitiesModule school={activeSchool} />
+            )}
+
+            {/* Teachers & Staff View */}
+            {activeTab === 'staff' && activeSchool && (
+              <StaffModule school={activeSchool} />
+            )}
+
+            {/* Evidence & Documents View */}
+            {activeTab === 'documents' && activeSchool && (
+              <DocumentsModule school={activeSchool} />
+            )}
+
+            {/* Submissions & Verification View */}
+            {activeTab === 'submission' && activeSchool && (
+              <SubmissionWorkflow
+                school={activeSchool}
+                onOpenOfficialPrint={() => handleOpenPrintDossier(activeSchool.emisCode)}
+              />
+            )}
+
+            {/* Reports & Exports View */}
+            {activeTab === 'reports' && (
+              <ReportsHub onOpenDossierPrint={handleOpenPrintDossier} />
+            )}
+
+            {/* System Audit Logs View */}
+            {activeTab === 'audit' && (isAEO || isSupervisor) && (
+              <AuditTrailView />
+            )}
+          </main>
+
+          {/* Official Footer */}
+          <footer className="bg-white border-t border-slate-200 py-3.5 px-6 text-xs text-slate-500 shrink-0">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+              <div>
+                {isUrdu
+                  ? 'معاون تعلیمی افسر (AEO) سکول ڈیٹا مینجمنٹ سسٹم · حکومت پنجاب'
+                  : 'Assistant Education Officer (AEO) School Data Management System · Govt. of the Punjab'}
+              </div>
+              <div className="text-[11px] font-mono text-slate-400">
+                Markaz Pindi Gheb · District Attock · Academic Year 2026-27
+              </div>
+            </div>
+          </footer>
         </div>
-      )}
-
-      {/* Main View Area */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
-        {/* Dashboard View */}
-        {activeTab === 'dashboard' && (
-          <AeoDashboard
-            onSelectSchool={handleSelectSchoolFromDashboard}
-            onOpenSubmissionReview={(subId) => {
-              const sub = submissions.find(s => s.id === subId);
-              if (sub) {
-                setSelectedSchoolEmis(sub.schoolEmisCode);
-                setActiveTab('submission');
-              }
-            }}
-          />
-        )}
-
-        {/* Schools Directory View */}
-        {activeTab === 'schools' && (
-          <AeoDashboard
-            onSelectSchool={handleSelectSchoolFromDashboard}
-            onOpenSubmissionReview={(subId) => {
-              const sub = submissions.find(s => s.id === subId);
-              if (sub) {
-                setSelectedSchoolEmis(sub.schoolEmisCode);
-                setActiveTab('submission');
-              }
-            }}
-          />
-        )}
-
-        {/* School Profile View */}
-        {activeTab === 'profile' && activeSchool && (
-          <SchoolProfileView school={activeSchool} />
-        )}
-
-        {/* Enrollment View */}
-        {activeTab === 'enrollment' && activeSchool && (
-          <EnrollmentModule school={activeSchool} />
-        )}
-
-        {/* NSB Funds View */}
-        {activeTab === 'nsb' && activeSchool && (
-          <NSBModule school={activeSchool} />
-        )}
-
-        {/* FTF Funds View */}
-        {activeTab === 'ftf' && activeSchool && (
-          <FTFModule school={activeSchool} />
-        )}
-
-        {/* Building & Facilities View */}
-        {activeTab === 'facilities' && activeSchool && (
-          <FacilitiesModule school={activeSchool} />
-        )}
-
-        {/* Staff & Teachers View */}
-        {activeTab === 'staff' && activeSchool && (
-          <StaffModule school={activeSchool} />
-        )}
-
-        {/* Documents & Photo Evidence View */}
-        {activeTab === 'documents' && activeSchool && (
-          <DocumentsModule school={activeSchool} />
-        )}
-
-        {/* Submission & Approval Workflow View */}
-        {activeTab === 'submission' && activeSchool && (
-          <SubmissionWorkflow
-            school={activeSchool}
-            onOpenOfficialPrint={() => handleOpenPrintDossier(activeSchool.emisCode)}
-          />
-        )}
-
-        {/* Reports & Exports View */}
-        {activeTab === 'reports' && (
-          <ReportsHub onOpenDossierPrint={handleOpenPrintDossier} />
-        )}
-
-        {/* Audit Trail View */}
-        {activeTab === 'audit' && (isAEO || isSupervisor) && (
-          <AuditTrailView />
-        )}
-      </main>
+      </div>
 
       {/* Official Dossier Printable Modal */}
       {printSchool && (
@@ -186,22 +256,8 @@ const MainLayout: React.FC = () => {
         />
       )}
 
-      {/* Mandatory Password Change Modal if account requires it */}
+      {/* Mandatory Password Change Modal */}
       <PasswordChangeModal />
-
-      {/* Official Footer */}
-      <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div>
-            {isUrdu
-              ? 'معاون تعلیمی افسر (AEO) سکول ڈیٹا مینجمنٹ سسٹم · حکومت پنجاب'
-              : 'Assistant Education Officer (AEO) School Data Management System · Govt. of the Punjab'}
-          </div>
-          <div className="text-[11px] font-mono text-slate-400">
-            Cluster Markaz Pindi Gheb · District Attock · Academic Year 2026-27
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
