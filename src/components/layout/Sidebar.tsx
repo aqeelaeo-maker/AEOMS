@@ -20,8 +20,22 @@ import {
   RotateCcw,
   ChevronDown,
   X,
-  FileText
+  FileText,
+  KeyRound
 } from 'lucide-react';
+
+interface NavTab {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  roles: string[];
+  badge?: number | string;
+}
+
+interface NavGroup {
+  groupTitle: string;
+  tabs: NavTab[];
+}
 
 interface SidebarProps {
   activeTab: string;
@@ -42,6 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const {
     currentUser,
     currentSchool,
+    isDyDEO,
     isAEO,
     isSupervisor,
     isSchoolUser,
@@ -50,11 +65,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   } = useAuth();
   const { t, isUrdu } = useLanguage();
 
-  const schools = getSchools();
-  const currentRole = currentUser?.role || 'aeo_admin';
+  const currentRole = currentUser?.role || (currentUser?.email === 'dydeowpindigheb@gmail.com' ? 'dy_deo' : 'aeo_admin');
 
   // Primary Sections for the Left Pane with Tabs
-  const navigationGroups = [
+  const navigationGroups: NavGroup[] = [
     {
       groupTitle: isUrdu ? 'مرکزی جائزہ و فہرست' : 'Central Monitoring',
       tabs: [
@@ -62,13 +76,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
           id: 'dashboard',
           label: isUrdu ? 'ڈیش بورڈ' : 'Dashboard',
           icon: LayoutDashboard,
-          roles: ['aeo_admin', 'supervisor']
+          roles: ['dy_deo', 'aeo_admin', 'supervisor']
         },
         {
           id: 'schools',
           label: isUrdu ? 'سکولز' : 'Schools',
           icon: School,
-          roles: ['aeo_admin', 'supervisor']
+          roles: ['dy_deo', 'aeo_admin', 'supervisor']
+        }
+      ]
+    },
+    {
+      groupTitle: isUrdu ? 'سرکاری لاگ ان و اسناد' : 'Credentials & Accounts',
+      tabs: [
+        {
+          id: 'aeo_credentials',
+          label: isUrdu ? 'اے ای اوز اسناد مینجمنٹ' : 'AEO Credentials',
+          icon: KeyRound,
+          roles: ['dy_deo']
+        },
+        {
+          id: 'school_credentials',
+          label: isUrdu ? 'سکول اسناد و پاس ورڈ' : 'School Credentials',
+          icon: KeyRound,
+          roles: ['aeo_admin', 'dy_deo']
         }
       ]
     },
@@ -79,43 +110,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
           id: 'profile',
           label: isUrdu ? 'سکول پروفائل' : 'School Profile',
           icon: FileText,
-          roles: ['aeo_admin', 'supervisor', 'school_user']
+          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
         },
         {
           id: 'enrollment',
           label: isUrdu ? 'داخلہ اور حاضری' : 'Enrollment and Attendance',
           icon: Users,
-          roles: ['aeo_admin', 'supervisor', 'school_user']
+          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
         },
         {
           id: 'nsb',
           label: isUrdu ? 'نان سیلری بجٹ و اخراجات' : 'NSB Funds and Expenditure',
           icon: Coins,
-          roles: ['aeo_admin', 'supervisor', 'school_user']
+          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
         },
         {
           id: 'ftf',
           label: isUrdu ? 'فروغِ تعلیم فنڈ رجسٹر' : 'FTF Collections and registers',
           icon: Receipt,
-          roles: ['aeo_admin', 'supervisor', 'school_user']
+          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
         },
         {
           id: 'facilities',
           label: isUrdu ? 'عمارات اور سہولیات' : 'Building and Facilities',
           icon: Building2,
-          roles: ['aeo_admin', 'supervisor', 'school_user']
+          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
         },
         {
           id: 'staff',
           label: isUrdu ? 'اساتذہ اور عملہ' : 'Teachers & Staff',
           icon: GraduationCap,
-          roles: ['aeo_admin', 'supervisor', 'school_user']
+          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
         },
         {
           id: 'documents',
           label: isUrdu ? 'دستاویزات و بلز' : 'Document Evidence & Photos',
           icon: FileCheck,
-          roles: ['aeo_admin', 'supervisor', 'school_user']
+          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
         }
       ]
     },
@@ -127,19 +158,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
           label: isUrdu ? 'کوائف جمع و توثیق' : 'Submissions & Verification',
           icon: SendHorizontal,
           badge: pendingReviewsCount > 0 ? pendingReviewsCount : undefined,
-          roles: ['aeo_admin', 'supervisor', 'school_user']
+          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
         },
         {
           id: 'reports',
           label: isUrdu ? 'رپورٹس اور ایکسل برآمد' : 'Reports & Exports',
           icon: FileSpreadsheet,
-          roles: ['aeo_admin', 'supervisor', 'school_user']
+          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
         },
         {
           id: 'audit',
           label: isUrdu ? 'سسٹم آڈٹ ٹریل' : 'System Audit Logs',
           icon: History,
-          roles: ['aeo_admin', 'supervisor']
+          roles: ['dy_deo', 'aeo_admin', 'supervisor']
         }
       ]
     }
@@ -172,14 +203,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-4 border-b border-emerald-900 bg-emerald-900/60 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold text-sm shadow-xs border border-emerald-500/40">
-              AEO
+              {isDyDEO ? 'DEO' : 'AEO'}
             </div>
             <div>
               <div className="text-xs font-bold text-white tracking-tight leading-tight">
-                {isUrdu ? 'سکول ڈیٹا مینجمنٹ سسٹم' : 'AEO School Portal'}
+                {isUrdu ? 'سکول ڈیٹا مینجمنٹ سسٹم' : 'School Record System'}
               </div>
               <div className="text-[10px] text-emerald-300 font-medium">
-                {isUrdu ? 'مرکز پنڈی گھیب · اٹک' : 'Markaz Pindi Gheb · Attock'}
+                {isDyDEO
+                  ? (isUrdu ? 'دفتر ڈپٹی ڈی ای او پنڈی گھیب' : 'Dy. DEO · Tehsil Pindi Gheb')
+                  : isAEO && currentUser?.assignedMarkaz
+                  ? (isUrdu ? `مرکز: ${currentUser.assignedMarkaz}` : `Markaz: ${currentUser.assignedMarkaz}`)
+                  : (isUrdu ? 'مرکز پنڈی گھیب · اٹک' : 'Markaz Pindi Gheb · Attock')}
               </div>
             </div>
           </div>
@@ -191,49 +226,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
-
-        {/* Selected School Context Indicator (School-Wise Mode) */}
-        <div className="p-3 bg-emerald-900/40 border-b border-emerald-800/80">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-300 flex items-center justify-between mb-1">
-            <span>{isUrdu ? 'منتخب سکول (School-Wise):' : 'Focus School Record:'}</span>
-            {isSchoolUser && (
-              <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-700 text-white rounded font-bold">
-                My School
-              </span>
-            )}
-          </div>
-
-          {(isAEO || isSupervisor) ? (
-            <div className="relative">
-              <select
-                value={selectedSchoolEmis || ''}
-                onChange={e => setSelectedSchoolEmis(e.target.value || null)}
-                className="w-full text-xs font-semibold bg-emerald-900 border border-emerald-700 text-white rounded-lg py-1.5 px-2.5 pr-7 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer shadow-2xs truncate"
-              >
-                <option value="" className="bg-emerald-950 text-white">
-                  {isUrdu ? 'تمام سکولز (مرکزی جائزہ)' : 'Cluster Overview (All Schools)'}
-                </option>
-                {schools.map(s => (
-                  <option key={s.emisCode} value={s.emisCode} className="bg-emerald-950 text-white">
-                    {s.emisCode} - {s.name} ({s.category})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-emerald-300 absolute right-2 top-2.5 pointer-events-none" />
-            </div>
-          ) : (
-            <div className="bg-emerald-900/80 border border-emerald-700/80 rounded-lg p-2 text-white">
-              <div className="text-xs font-bold text-white truncate">
-                {currentSchool?.name}
-              </div>
-              <div className="text-[10px] text-emerald-200 font-mono mt-0.5 flex items-center gap-2">
-                <span>EMIS: {currentSchool?.emisCode}</span>
-                <span>·</span>
-                <span className="font-sans text-amber-300 font-semibold">{currentSchool?.category}</span>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Scrollable Navigation Items */}

@@ -5,6 +5,8 @@ import {
   getUserByUsername,
   updateUserPassword,
   getSchoolByEmis,
+  getSchools,
+  getSchoolsForUser,
   initializeStorage
 } from '../services/storage';
 import { hashPassword } from '../data/initialData';
@@ -13,7 +15,9 @@ import { ensureFirebaseAuth } from '../firebase/config';
 interface AuthContextType {
   currentUser: UserAccount | null;
   currentSchool: School | null;
+  allowedSchools: School[];
   isAuthenticated: boolean;
+  isDyDEO: boolean;
   isAEO: boolean;
   isSupervisor: boolean;
   isSchoolUser: boolean;
@@ -21,7 +25,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   submitPasswordChange: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
-  demoLogin: (role: 'aeo_admin' | 'supervisor' | 'school_user', emisCode?: string) => void;
+  demoLogin: (role: 'dy_deo' | 'aeo_admin' | 'supervisor' | 'school_user', idOrEmis?: string) => void;
   // For AEO and Supervisor: Selected active school for deep inspection
   selectedSchoolEmis: string | null;
   setSelectedSchoolEmis: (emisCode: string | null) => void;
@@ -46,8 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const savedUserJson = localStorage.getItem(AUTH_STORAGE_KEY);
       if (savedUserJson) {
         const parsed: UserAccount = JSON.parse(savedUserJson);
-        // Refresh latest record from storage
-        const latest = getUserByUsername(parsed.username);
+        const latest = getUserByUsername(parsed.username) || (parsed.email ? getUserByUsername(parsed.email) : undefined);
         if (latest) {
           setCurrentUser(latest);
           if (latest.mustChangePassword) {
@@ -58,11 +61,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } else {
-        // Default on initial launch: AEO Administrator to show the complete command center
-        const defaultAEO = getUserByUsername('aeo.pindigheb');
-        if (defaultAEO) {
-          setCurrentUser(defaultAEO);
-          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(defaultAEO));
+        // Default on initial launch: Dy. DEO command authority
+        const defaultAdmin = getUserByUsername('dydeowpindigheb@gmail.com') || getUserByUsername('aeo.pindigheb');
+        if (defaultAdmin) {
+          setCurrentUser(defaultAdmin);
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(defaultAdmin));
         }
       }
 
@@ -96,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const user = getUserByUsername(trimmedUser);
 
     if (!user) {
-      return { success: false, error: 'User account not found. Please check EMIS code or username.' };
+      return { success: false, error: 'User account not found. Please check official email, username, or EMIS code.' };
     }
 
     const hashedInput = await hashPassword(plainPassword);
@@ -105,13 +108,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isInitialMatch = user.mustChangePassword && plainPassword.trim() === trimmedUser;
     const isHashMatch = user.passwordHash === hashedInput;
 
-    // Known default seeds match
-    const isDefaultAdminMatch = user.username === 'aeo.pindigheb' && plainPassword === 'AeoAdmin@2026';
+    // Known default credentials matches
+    const isDyDeoMatch =
+      (user.username === 'dydeowpindigheb@gmail.com' || user.email === 'dydeowpindigheb@gmail.com') &&
+      (plainPassword === 'DyDeo@2026' || plainPassword === 'dydeo123' || plainPassword === 'AeoAdmin@2026');
+
+    const isDefaultAeoMatch = user.role === 'aeo_admin' && (plainPassword === 'AeoAdmin@2026' || plainPassword === 'aeo123');
     const isDefaultSuperMatch = user.username === 'supervisor.attock' && plainPassword === 'Supervisor@2026';
     const isInitialEmisHashMatch = user.passwordHash === `${trimmedUser}_initial_hash` && plainPassword === trimmedUser;
 
-    if (!isInitialMatch && !isHashMatch && !isDefaultAdminMatch && !isDefaultSuperMatch && !isInitialEmisHashMatch) {
-      return { success: false, error: 'Incorrect password. Initial temporary password is your EMIS code.' };
+    if (!isInitialMatch && !isHashMatch && !isDyDeoMatch && !isDefaultAeoMatch && !isDefaultSuperMatch && !isInitialEmisHashMatch) {
+      return { success: false, error: 'Incorrect password. Please verify credentials or contact Dy. DEO / AEO.' };
     }
 
     // Success
@@ -120,6 +127,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (user.role === 'school_user' && user.schoolEmisCode) {
       setSelectedSchoolEmisState(user.schoolEmisCode);
+    } else {
+      setSelectedSchoolEmisState(null);
     }
 
     if (user.mustChangePassword) {
@@ -161,9 +170,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
-  const demoLogin = (role: 'aeo_admin' | 'supervisor' | 'school_user', emisCode?: string) => {
-    if (role === 'aeo_admin') {
-      const u = getUserByUsername('aeo.pindigheb');
+  const demoLogin = (role: 'dy_deo' | 'aeo_admin' | 'supervisor' | 'school_user', idOrEmis?: string) => {
+    if (role === 'dy_deo') {
+      const u = getUserByUsername('dydeowpindigheb@gmail.com') || getUsers().find(x => x.role === 'dy_deo');
+      if (u) {
+        setCurrentUser(u);
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(u));
+        setSelectedSchoolEmisState(null);
+        setMustChangePasswordModalOpen(false);
+      }
+    } else if (role === 'aeo_admin') {
+      const targetUser = idOrEmis ? getUserByUsername(idOrEmis) : getUserByUsername('aeo.pindigheb');
+      const u = targetUser || getUsers().find(x => x.role === 'aeo_admin');
       if (u) {
         setCurrentUser(u);
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(u));
@@ -179,10 +197,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setMustChangePasswordModalOpen(false);
       }
     } else {
-      const targetEmis = emisCode || '37120101';
+      const targetEmis = idOrEmis || '37120101';
       let u = getUserByUsername(targetEmis);
       if (!u) {
-        // If not present, create on the fly
         const users = getUsers();
         const school = getSchoolByEmis(targetEmis);
         const newUser: UserAccount = {
@@ -210,13 +227,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const isDyDEO = currentUser?.role === 'dy_deo' || currentUser?.email === 'dydeowpindigheb@gmail.com' || currentUser?.username === 'dydeowpindigheb@gmail.com';
   const isAEO = currentUser?.role === 'aeo_admin';
   const isSupervisor = currentUser?.role === 'supervisor';
   const isSchoolUser = currentUser?.role === 'school_user';
 
+  // Each AEO can only view data of his own schools
+  const allowedSchools = getSchoolsForUser(currentUser);
+
   // Target school for editing / viewing:
-  // If school user, ALWAYS their assigned school. If AEO or Supervisor, the selected school or null.
-  const effectiveSchoolEmis = isSchoolUser ? currentUser?.schoolEmisCode : selectedSchoolEmis;
+  const effectiveSchoolEmis = isSchoolUser
+    ? currentUser?.schoolEmisCode
+    : selectedSchoolEmis || (allowedSchools.length > 0 ? allowedSchools[0].emisCode : null);
+
   const currentSchool = effectiveSchoolEmis ? getSchoolByEmis(effectiveSchoolEmis) || null : null;
 
   return (
@@ -224,10 +247,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         currentUser,
         currentSchool,
+        allowedSchools,
         isAuthenticated: !!currentUser,
-        isAEO,
-        isSupervisor,
-        isSchoolUser,
+        isDyDEO: !!isDyDEO,
+        isAEO: !!isAEO,
+        isSupervisor: !!isSupervisor,
+        isSchoolUser: !!isSchoolUser,
         mustChangePasswordModalOpen,
         login,
         logout,

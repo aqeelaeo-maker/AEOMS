@@ -1,7 +1,7 @@
 export type SchoolCategory = 'Public' | 'Private' | 'PEIMA' | 'PEF';
 export type SchoolLevel = 'Primary' | 'Elementary' | 'High' | 'Higher Secondary';
 export type GenderPolicy = 'Boys' | 'Girls' | 'Co-Education';
-export type UserRole = 'aeo_admin' | 'school_user' | 'supervisor';
+export type UserRole = 'dy_deo' | 'aeo_admin' | 'school_user' | 'supervisor';
 export type SubmissionStatus = 'draft' | 'submitted' | 'under_review' | 'approved' | 'returned';
 
 export interface School {
@@ -30,6 +30,7 @@ export interface UserAccount {
   username: string; // EMIS code for school, or custom username
   displayName: string;
   role: UserRole;
+  assignedMarkaz?: string; // For AEOs: e.g. 'Pindi Gheb City', 'Malhuwali', 'Ikhlas', 'Khaur'
   schoolEmisCode?: string;
   email?: string;
   phone?: string;

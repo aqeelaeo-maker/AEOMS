@@ -32,7 +32,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenDossierPrint,
   onToggleSidebar
 }) => {
-  const { currentUser, currentSchool, isAEO, isSupervisor, isSchoolUser, logout, selectedSchoolEmis, setSelectedSchoolEmis } = useAuth();
+  const { currentUser, currentSchool, isDyDEO, isAEO, isSupervisor, isSchoolUser, logout, selectedSchoolEmis, setSelectedSchoolEmis } = useAuth();
   const { language, setLanguage, t, isUrdu } = useLanguage();
 
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -84,7 +84,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
             <span className="text-emerald-500/80">/</span>
             <span className="text-emerald-300 hidden sm:inline">
-              {isUrdu ? 'دفتر معاون تعلیمی افسر (AEO) تحصیل پنڈی گھیب، ضلع اٹک' : 'Office of the Assistant Education Officer (AEO), Tehsil Pindi Gheb, District Attock'}
+              {isDyDEO
+                ? (isUrdu ? 'دفتر ڈپٹی ڈسٹرکٹ ایجوکیشن آفیسر (Dy. DEO) پنڈی گھیب' : 'Office of Deputy District Education Officer (Dy. DEO) Pindi Gheb')
+                : (isUrdu ? 'دفتر معاون تعلیمی افسر (AEO) تحصیل پنڈی گھیب، ضلع اٹک' : 'Office of the Assistant Education Officer (AEO), Tehsil Pindi Gheb, District Attock')}
             </span>
           </div>
 
@@ -141,7 +143,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="flex items-center gap-2.5 text-left group"
               >
                 <div className="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center font-black text-lg shadow-xs border border-emerald-600 group-hover:bg-emerald-700 transition-colors">
-                  AEO
+                  {isDyDEO ? 'DEO' : 'AEO'}
                 </div>
                 <div>
                   <h1 className="text-base font-bold text-white tracking-tight leading-snug group-hover:text-emerald-200 transition-colors">
@@ -166,8 +168,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                         {currentUser.displayName}
                       </div>
                       <div className="text-[10px] text-emerald-300 font-mono">
-                        {isAEO ? (
-                          <span className="text-amber-300 font-semibold">AEO Admin</span>
+                        {isDyDEO ? (
+                          <span className="text-amber-300 font-bold">Dy. DEO (Super Admin)</span>
+                        ) : isAEO ? (
+                          <span className="text-amber-300 font-semibold">AEO · Markaz {currentUser.assignedMarkaz || ''}</span>
                         ) : isSupervisor ? (
                           <span className="text-blue-300 font-medium">Supervisor (Read-Only)</span>
                         ) : (

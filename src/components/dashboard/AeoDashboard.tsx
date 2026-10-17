@@ -19,7 +19,6 @@ import {
   Clock,
   RotateCcw,
   ArrowUpRight,
-  ShieldCheck,
   Search,
   Filter,
   School,
@@ -37,16 +36,27 @@ export const AeoDashboard: React.FC<AeoDashboardProps> = ({
   onSelectSchool,
   onOpenSubmissionReview
 }) => {
-  const { isAEO, isSupervisor, currentUser } = useAuth();
+  const { isDyDEO, isAEO, isSupervisor, currentUser, allowedSchools } = useAuth();
   const { t, isUrdu } = useLanguage();
 
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [markazFilter, setMarkazFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const schools = getSchools();
+  // If AEO, their schools are strictly scoped to their own markaz
+  const baseSchools = isAEO && currentUser?.assignedMarkaz
+    ? allowedSchools.filter(s => s.markaz && s.markaz.trim().toLowerCase() === currentUser.assignedMarkaz!.trim().toLowerCase())
+    : allowedSchools;
+
+  const markazOptions = Array.from(new Set(getSchools().map(s => s.markaz))).filter(Boolean);
+
+  const displaySchools = isDyDEO && markazFilter !== 'all'
+    ? baseSchools.filter(s => s.markaz === markazFilter)
+    : baseSchools;
+
   const submissions = getSubmissions();
 
-  // Aggregate stats across cluster
+  // Aggregate stats across jurisdiction
   let totalEnrollment = 0;
   let totalBoys = 0;
   let totalGirls = 0;
@@ -57,7 +67,7 @@ export const AeoDashboard: React.FC<AeoDashboardProps> = ({
   let schoolsWithoutSolar = 0;
   let damagedBoundaryWalls = 0;
 
-  schools.forEach(school => {
+  displaySchools.forEach(school => {
     const enr = getEnrollment(school.emisCode);
     if (enr) {
       totalEnrollment += enr.grandTotal || 0;
@@ -84,14 +94,8 @@ export const AeoDashboard: React.FC<AeoDashboardProps> = ({
     }
   });
 
-  // Submission statuses breakdown
-  const pendingCount = submissions.filter(s => s.status === 'submitted' || s.status === 'under_review').length;
-  const approvedCount = submissions.filter(s => s.status === 'approved').length;
-  const returnedCount = submissions.filter(s => s.status === 'returned').length;
-  const draftCount = schools.length - (pendingCount + approvedCount + returnedCount);
-
   // Filtered schools
-  const filteredSchools = schools.filter(s => {
+  const filteredSchools = displaySchools.filter(s => {
     const matchesCategory = categoryFilter === 'all' || s.category === categoryFilter;
     const matchesSearch =
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -101,47 +105,54 @@ export const AeoDashboard: React.FC<AeoDashboardProps> = ({
   });
 
   const categoryCounts = {
-    Public: schools.filter(s => s.category === 'Public').length,
-    Private: schools.filter(s => s.category === 'Private').length,
-    PEIMA: schools.filter(s => s.category === 'PEIMA').length,
-    PEF: schools.filter(s => s.category === 'PEF').length
+    all: displaySchools.length,
+    Public: displaySchools.filter(s => s.category === 'Public').length,
+    Private: displaySchools.filter(s => s.category === 'Private').length,
+    PEIMA: displaySchools.filter(s => s.category === 'PEIMA').length,
+    PEF: displaySchools.filter(s => s.category === 'PEF').length
   };
 
   return (
     <div className="space-y-6">
-      {/* Officer Welcome & Authority Banner */}
-      <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 rounded-2xl p-6 text-white shadow-md relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold mb-2 border border-emerald-400/30">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Markaz Pindi Gheb Jurisdiction · Attock District</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-              {isUrdu ? 'مرکزی کلسٹر مانیٹرنگ اور کوائف تصدیق ڈیش بورڈ' : 'Consolidated Cluster Oversight & Verification Portal'}
-            </h2>
-            <p className="text-xs sm:text-sm text-emerald-100/80 mt-1 max-w-2xl leading-relaxed">
-              {isUrdu
-                ? 'تمام سرکاری، پرائیویٹ، پیما (PEIMA) اور پیف (PEF) سکولوں کے داخلہ، بجٹ اخراجات، عمارات و عملہ کی آن لائن توثیق۔'
-                : 'Centralized administration for Public, Private, PEIMA, and PEF schools with real-time audit of enrollment, NSB funds, infrastructure safety, and quarterly submission approvals.'}
-            </p>
+      {/* Jurisdiction Status Banner */}
+      <div className="bg-emerald-900 text-white rounded-xl p-4 sm:p-5 border border-emerald-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <span className="text-xs uppercase tracking-wider font-bold text-emerald-200">
+              {isDyDEO
+                ? (isUrdu ? 'ڈپٹی ڈی ای او نگرانی مرکز' : 'Deputy DEO Tehsil Supervision')
+                : (isUrdu ? `معاون تعلیمی افسر (AEO) · مرکز ${currentUser?.assignedMarkaz || ''}` : `Assistant Education Officer (AEO) · Markaz ${currentUser?.assignedMarkaz || ''}`)}
+            </span>
           </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="bg-white/10 backdrop-blur-xs border border-white/20 rounded-xl p-3 text-center min-w-[110px]">
-              <div className="text-2xl font-extrabold font-mono text-emerald-300">{schools.length}</div>
-              <div className="text-[11px] text-emerald-100 font-medium">
-                {isUrdu ? 'کل سکولز' : 'Total Schools'}
-              </div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-xs border border-white/20 rounded-xl p-3 text-center min-w-[110px]">
-              <div className="text-2xl font-extrabold font-mono text-amber-300">{pendingCount}</div>
-              <div className="text-[11px] text-amber-100 font-medium">
-                {isUrdu ? 'زیرِ توثیق فائلیں' : 'Pending Review'}
-              </div>
-            </div>
-          </div>
+          <h2 className="text-lg font-bold mt-1 text-white">
+            {isDyDEO
+              ? (isUrdu ? 'تحصیل پنڈی گھیب کلسٹر مانیٹرنگ ڈیش بورڈ' : 'Tehsil Pindi Gheb Cluster Monitoring Dashboard')
+              : (isUrdu ? `مرکز ${currentUser?.assignedMarkaz || 'پنڈی گھیب'} - سکول ریکارڈ و نگرانی` : `Markaz ${currentUser?.assignedMarkaz || 'Pindi Gheb'} - School Records & Monitoring`)}
+          </h2>
+          <p className="text-xs text-emerald-200/90 mt-0.5">
+            {isAEO
+              ? (isUrdu ? `آپ کے مرکز کے کل ${displaySchools.length} سکولز کا مصدقہ ڈیٹا دکھایا جا رہا ہے۔` : `Displaying authenticated data for your ${displaySchools.length} schools in Markaz ${currentUser?.assignedMarkaz || ''}.`)
+              : (isUrdu ? `تمام کلسٹرز اور اے ای اوز کے کل ${displaySchools.length} سکولز۔` : `Consolidated oversight of ${displaySchools.length} schools across jurisdiction.`)}
+          </p>
         </div>
+
+        {/* For Dy. DEO: Markaz Switcher / Filter */}
+        {isDyDEO && (
+          <div className="flex items-center gap-2 shrink-0 bg-emerald-950/80 p-2 rounded-lg border border-emerald-700/80">
+            <span className="text-xs text-emerald-200 font-semibold">{isUrdu ? 'مرکز منتخب کریں:' : 'Filter Markaz:'}</span>
+            <select
+              value={markazFilter}
+              onChange={e => setMarkazFilter(e.target.value)}
+              className="text-xs bg-emerald-900 border border-emerald-700 text-white rounded-md py-1 px-2.5 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer"
+            >
+              <option value="all">{isUrdu ? 'تمام مراکز (All Markazes)' : 'All Markazes (Tehsil Wide)'}</option>
+              {markazOptions.map(m => (
+                <option key={m} value={m}>Markaz {m}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* KPI Stat Cards Grid */}
@@ -226,58 +237,6 @@ export const AeoDashboard: React.FC<AeoDashboardProps> = ({
         </div>
       </div>
 
-      {/* Verification Pipeline Tracker */}
-      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-2xs">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900">
-              {isUrdu ? 'سہ ماہی کوائف جمع اور توثیقی مراحل (Q1 2026-27)' : 'Quarterly Submission & Verification Pipeline (Q1 2026-27)'}
-            </h3>
-            <p className="text-xs text-slate-500">
-              {isUrdu ? 'ڈرافٹ سے منظوری تک سکولوں کی پیش رفت' : 'Progress tracker from School Draft to AEO Final Approval'}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="p-3 rounded-lg bg-amber-50 border border-amber-200/80">
-            <div className="flex items-center justify-between text-amber-800">
-              <span className="text-xs font-medium">{t('submitted')} / {t('underReview')}</span>
-              <Clock className="w-4 h-4 text-amber-600" />
-            </div>
-            <div className="text-2xl font-extrabold font-mono text-amber-900 mt-1">{pendingCount}</div>
-            <div className="text-[11px] text-amber-700 mt-1">{isUrdu ? 'اے ای او کارروائی کے منتظر' : 'Awaiting AEO Action'}</div>
-          </div>
-
-          <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200/80">
-            <div className="flex items-center justify-between text-emerald-800">
-              <span className="text-xs font-medium">{t('approved')}</span>
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            </div>
-            <div className="text-2xl font-extrabold font-mono text-emerald-900 mt-1">{approvedCount}</div>
-            <div className="text-[11px] text-emerald-700 mt-1">{isUrdu ? 'تصدیق شدہ و سند یافتہ' : 'Verified with Certificate'}</div>
-          </div>
-
-          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200/80">
-            <div className="flex items-center justify-between text-rose-800">
-              <span className="text-xs font-medium">{t('returned')}</span>
-              <RotateCcw className="w-4 h-4 text-rose-600" />
-            </div>
-            <div className="text-2xl font-extrabold font-mono text-rose-900 mt-1">{returnedCount}</div>
-            <div className="text-[11px] text-rose-700 mt-1">{isUrdu ? 'اعتراضات کے ساتھ واپس' : 'Returned with Objections'}</div>
-          </div>
-
-          <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
-            <div className="flex items-center justify-between text-slate-700">
-              <span className="text-xs font-medium">{t('draft')} / Unsubmitted</span>
-              <School className="w-4 h-4 text-slate-500" />
-            </div>
-            <div className="text-2xl font-extrabold font-mono text-slate-800 mt-1">{draftCount}</div>
-            <div className="text-[11px] text-slate-600 mt-1">{isUrdu ? 'ابھی جمع نہیں کروائے گئے' : 'Not yet submitted'}</div>
-          </div>
-        </div>
-      </div>
-
       {/* Category Filter Buttons */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
         <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg overflow-x-auto">
@@ -289,7 +248,7 @@ export const AeoDashboard: React.FC<AeoDashboardProps> = ({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            {isUrdu ? 'تمام سکولز' : 'All Categories'} ({schools.length})
+            {isUrdu ? 'تمام سکولز' : 'All Categories'} ({displaySchools.length})
           </button>
           <button
             onClick={() => setCategoryFilter('Public')}

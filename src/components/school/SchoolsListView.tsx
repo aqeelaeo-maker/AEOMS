@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import {
   getSchools,
+  getSchoolsForUser,
   saveSchool,
   deleteSchool,
   resetSchoolPasswordToDefault,
@@ -36,10 +37,10 @@ interface SchoolsListViewProps {
 }
 
 export const SchoolsListView: React.FC<SchoolsListViewProps> = ({ onInspectSchool }) => {
-  const { isAEO, isSupervisor, currentUser } = useAuth();
+  const { isDyDEO, isAEO, isSupervisor, currentUser } = useAuth();
   const { t, isUrdu } = useLanguage();
 
-  const [schools, setSchools] = useState<School[]>(() => getSchools());
+  const [schools, setSchools] = useState<School[]>(() => getSchoolsForUser(currentUser));
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
@@ -56,7 +57,7 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({ onInspectSchoo
     gender: 'Boys',
     district: 'Attock',
     tehsil: 'Pindi Gheb',
-    markaz: 'Pindi Gheb City',
+    markaz: currentUser?.assignedMarkaz || 'Pindi Gheb City',
     unionCouncil: '',
     address: '',
     addressUrdu: '',
@@ -69,7 +70,7 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({ onInspectSchoo
   });
 
   const refreshSchools = () => {
-    setSchools(getSchools());
+    setSchools(getSchoolsForUser(currentUser));
   };
 
   const handleOpenAdd = () => {
@@ -83,7 +84,7 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({ onInspectSchoo
       gender: 'Boys',
       district: 'Attock',
       tehsil: 'Pindi Gheb',
-      markaz: 'Pindi Gheb City',
+      markaz: currentUser?.assignedMarkaz || 'Pindi Gheb City',
       unionCouncil: '',
       address: '',
       addressUrdu: '',

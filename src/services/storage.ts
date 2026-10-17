@@ -50,6 +50,26 @@ export function initializeStorage(): void {
   }
   if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(initialUsers));
+  } else {
+    // Ensure Dy. DEO and markaz-assigned AEO accounts are present
+    try {
+      const storedUsers: UserAccount[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+      const hasDyDeo = storedUsers.some(u => u.username === 'dydeowpindigheb@gmail.com' || u.id === 'user_dydeo');
+      if (!hasDyDeo) {
+        const merged = [...storedUsers];
+        for (const iu of initialUsers) {
+          const existingIdx = merged.findIndex(u => u.username === iu.username || u.id === iu.id);
+          if (existingIdx >= 0) {
+            merged[existingIdx] = { ...iu, ...merged[existingIdx], role: iu.role, assignedMarkaz: iu.assignedMarkaz || merged[existingIdx].assignedMarkaz };
+          } else {
+            merged.push(iu);
+          }
+        }
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(merged));
+      }
+    } catch {
+      // fallback
+    }
   }
   if (!localStorage.getItem(STORAGE_KEYS.ENROLLMENT)) {
     localStorage.setItem(STORAGE_KEYS.ENROLLMENT, JSON.stringify(initialEnrollment));
@@ -139,6 +159,26 @@ export function getSchools(): School[] {
 
 export function getSchoolByEmis(emisCode: string): School | undefined {
   return getSchools().find(s => s.emisCode === emisCode);
+}
+
+// Filtered schools according to user role and markaz jurisdiction
+// Each AEO can only view data of their own schools in their assigned Markaz
+export function getSchoolsForUser(user: UserAccount | null): School[] {
+  const allSchools = getSchools();
+  if (!user) return allSchools;
+  if (user.role === 'dy_deo' || user.email === 'dydeowpindigheb@gmail.com' || user.role === 'supervisor') {
+    return allSchools;
+  }
+  if (user.role === 'aeo_admin') {
+    if (!user.assignedMarkaz) return allSchools;
+    return allSchools.filter(
+      s => s.markaz && s.markaz.trim().toLowerCase() === user.assignedMarkaz!.trim().toLowerCase()
+    );
+  }
+  if (user.role === 'school_user' && user.schoolEmisCode) {
+    return allSchools.filter(s => s.emisCode === user.schoolEmisCode);
+  }
+  return allSchools;
 }
 
 export function saveSchool(school: School, user: UserAccount): void {
@@ -268,6 +308,219 @@ export async function resetSchoolPasswordToDefault(emisCode: string, adminUser: 
   );
 
   return true;
+}
+
+export function getUserByEmis(emisCode: string): UserAccount | undefined {
+  return getUsers().find(u => u.username === emisCode || u.schoolEmisCode === emisCode);
+}
+
+export function getAeoAccounts(): UserAccount[] {
+  return getUsers().filter(u => u.role === 'aeo_admin');
+}
+
+// Login credentials of all AEOs must be managed exclusively by dydeowpindigheb@gmail.com
+export async function saveAeoAccount(
+  aeoData: {
+    id?: string;
+    username: string;
+    displayName: string;
+    assignedMarkaz: string;
+    email?: string;
+    phone?: string;
+    passwordPlain?: string;
+  },
+  adminUser: UserAccount
+): Promise<{ success: boolean; error?: string; aeo?: UserAccount }> {
+  const isAuthorized =
+    adminUser.email === 'dydeowpindigheb@gmail.com' ||
+    adminUser.role === 'dy_deo' ||
+    adminUser.username === 'dydeowpindigheb@gmail.com';
+
+  if (!isAuthorized) {
+    return {
+      success: false,
+      error: 'Permission denied: Login credentials of all AEOs can only be set and managed by Dy. DEO (dydeowpindigheb@gmail.com).'
+    };
+  }
+
+  const users = getUsers();
+  const trimmedUsername = aeoData.username.trim();
+  const isNew = !aeoData.id;
+
+  if (isNew && users.some(u => u.username.toLowerCase() === trimmedUsername.toLowerCase())) {
+    return { success: false, error: `Official username "${trimmedUsername}" is already assigned to another account.` };
+  }
+
+  const targetId = aeoData.id || 'user_aeo_' + Date.now();
+  const targetUser = users.find(u => u.id === targetId);
+
+  let passwordHash = targetUser?.passwordHash || '';
+  if (aeoData.passwordPlain && aeoData.passwordPlain.trim()) {
+    passwordHash = await hashPassword(aeoData.passwordPlain.trim());
+  } else if (!passwordHash) {
+    passwordHash = await hashPassword('AeoAdmin@2026');
+  }
+
+  const updatedAeo: UserAccount = {
+    id: targetId,
+    username: trimmedUsername,
+    displayName: aeoData.displayName.trim(),
+    role: 'aeo_admin',
+    assignedMarkaz: aeoData.assignedMarkaz.trim(),
+    email: aeoData.email?.trim() || `${trimmedUsername}@punjab.gov.pk`,
+    phone: aeoData.phone?.trim() || '',
+    mustChangePassword: false,
+    passwordHash,
+    createdAt: targetUser?.createdAt || new Date().toISOString()
+  };
+
+  const existingIdx = users.findIndex(u => u.id === targetId);
+  if (existingIdx >= 0) {
+    users[existingIdx] = updatedAeo;
+  } else {
+    users.push(updatedAeo);
+  }
+
+  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+  syncToFirestore('users', targetId, updatedAeo);
+
+  addAuditLog(
+    adminUser.id,
+    adminUser.displayName,
+    adminUser.role,
+    isNew ? 'Create AEO Credentials' : 'Update AEO Credentials',
+    'AEO Credentials Management',
+    `Dy. DEO ${isNew ? 'issued new' : 'updated'} official login credentials for AEO ${updatedAeo.displayName} (Username: ${updatedAeo.username}, Markaz: ${updatedAeo.assignedMarkaz}).`
+  );
+
+  return { success: true, aeo: updatedAeo };
+}
+
+export async function deleteAeoAccount(
+  aeoId: string,
+  adminUser: UserAccount
+): Promise<{ success: boolean; error?: string }> {
+  const isAuthorized =
+    adminUser.email === 'dydeowpindigheb@gmail.com' ||
+    adminUser.role === 'dy_deo' ||
+    adminUser.username === 'dydeowpindigheb@gmail.com';
+
+  if (!isAuthorized) {
+    return {
+      success: false,
+      error: 'Permission denied: Only Dy. DEO (dydeowpindigheb@gmail.com) can revoke AEO accounts.'
+    };
+  }
+
+  const users = getUsers();
+  const target = users.find(u => u.id === aeoId);
+  if (!target) return { success: false, error: 'AEO account record not found' };
+
+  const updatedUsers = users.filter(u => u.id !== aeoId);
+  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
+  deleteFromFirestore('users', aeoId);
+
+  addAuditLog(
+    adminUser.id,
+    adminUser.displayName,
+    adminUser.role,
+    'Revoke AEO Credentials',
+    'AEO Credentials Management',
+    `Dy. DEO deleted AEO account credentials for ${target.displayName} (Username: ${target.username}, Markaz: ${target.assignedMarkaz}).`
+  );
+
+  return { success: true };
+}
+
+// Login credentials for each school in the Markaz of an AEO will be set by each AEO
+export async function saveSchoolCredentials(
+  emisCode: string,
+  credentials: {
+    username?: string;
+    passwordPlain?: string;
+    headTeacherName?: string;
+    headTeacherPhone?: string;
+  },
+  adminUser: UserAccount
+): Promise<{ success: boolean; error?: string }> {
+  const schools = getSchools();
+  const school = schools.find(s => s.emisCode === emisCode);
+  if (!school) return { success: false, error: 'School not found' };
+
+  const isDyDeo =
+    adminUser.email === 'dydeowpindigheb@gmail.com' ||
+    adminUser.role === 'dy_deo' ||
+    adminUser.username === 'dydeowpindigheb@gmail.com';
+
+  const isMarkazAeo =
+    adminUser.role === 'aeo_admin' &&
+    adminUser.assignedMarkaz &&
+    school.markaz &&
+    adminUser.assignedMarkaz.trim().toLowerCase() === school.markaz.trim().toLowerCase();
+
+  if (!isDyDeo && !isMarkazAeo) {
+    return {
+      success: false,
+      error: `Permission denied: Login credentials for this school can only be set by the AEO of Markaz "${school.markaz}".`
+    };
+  }
+
+  const users = getUsers();
+  const user = users.find(u => u.username === emisCode || u.schoolEmisCode === emisCode);
+
+  let newHash = user?.passwordHash;
+  if (credentials.passwordPlain && credentials.passwordPlain.trim()) {
+    newHash = await hashPassword(credentials.passwordPlain.trim());
+  } else if (!newHash) {
+    newHash = `${emisCode}_initial_hash`;
+  }
+
+  const updatedUser: UserAccount = {
+    id: user?.id || 'user_' + emisCode,
+    username: credentials.username?.trim() || emisCode,
+    displayName: credentials.headTeacherName
+      ? `Head Teacher, ${school.name} (${credentials.headTeacherName})`
+      : user?.displayName || `Head Teacher, ${school.name}`,
+    role: 'school_user',
+    schoolEmisCode: emisCode,
+    phone: credentials.headTeacherPhone?.trim() || user?.phone || school.headTeacherPhone,
+    mustChangePassword: false,
+    passwordHash: newHash,
+    createdAt: user?.createdAt || new Date().toISOString()
+  };
+
+  const userIdx = users.findIndex(u => u.id === updatedUser.id || u.schoolEmisCode === emisCode);
+  if (userIdx >= 0) {
+    users[userIdx] = updatedUser;
+  } else {
+    users.push(updatedUser);
+  }
+
+  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+  syncToFirestore('users', updatedUser.id, updatedUser);
+
+  if (credentials.headTeacherName || credentials.headTeacherPhone) {
+    const schoolIdx = schools.findIndex(s => s.emisCode === emisCode);
+    if (schoolIdx >= 0) {
+      if (credentials.headTeacherName) schools[schoolIdx].headTeacherName = credentials.headTeacherName.trim();
+      if (credentials.headTeacherPhone) schools[schoolIdx].headTeacherPhone = credentials.headTeacherPhone.trim();
+      localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(schools));
+      syncToFirestore('schools', emisCode, schools[schoolIdx]);
+    }
+  }
+
+  addAuditLog(
+    adminUser.id,
+    adminUser.displayName,
+    adminUser.role,
+    'Set School Credentials',
+    'School Credentials Management',
+    `AEO ${adminUser.displayName} set login credentials for school ${school.name} (EMIS: ${emisCode}, Markaz: ${school.markaz}).`,
+    emisCode,
+    school.name
+  );
+
+  return { success: true };
 }
 
 // Enrollment

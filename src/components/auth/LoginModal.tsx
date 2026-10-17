@@ -38,8 +38,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleQuickSelect = (role: 'aeo_admin' | 'supervisor' | 'school_user', emis?: string) => {
-    demoLogin(role, emis);
+  const handleQuickSelect = (role: 'dy_deo' | 'aeo_admin' | 'supervisor' | 'school_user', emisOrUsername?: string) => {
+    demoLogin(role, emisOrUsername);
     onClose();
   };
 
@@ -58,7 +58,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                   {isUrdu ? 'سرکاری لاگ ان پورٹل' : 'Official Portal Sign In'}
                 </h3>
                 <p className="text-xs text-slate-400">
-                  {isUrdu ? 'اسسٹنٹ ایجوکیشن آفیسر / سکول ریکارڈ سسٹم' : 'Assistant Education Officer / School Record System'}
+                  {isUrdu ? 'ڈپٹی ڈی ای او / معاون تعلیمی افسر / سکول پورٹل' : 'Deputy DEO / Assistant Education Officer / School Portal'}
                 </p>
               </div>
             </div>
@@ -82,7 +82,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {isUrdu ? 'ای ایم آئی ایس کوڈ یا صارف کا نام' : 'EMIS Code / Official Username'}
+                {isUrdu ? 'سرکاری ای میل / یوزر نیم / EMIS کوڈ' : 'Official Email / Username / EMIS Code'}
               </label>
               <div className="relative">
                 <input
@@ -90,14 +90,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                   required
                   value={username}
                   onChange={e => setUsername(e.target.value)}
-                  placeholder="e.g. 37120101 or aeo.pindigheb"
+                  placeholder="e.g. dydeowpindigheb@gmail.com, aeo.pindigheb, or 37120101"
                   className="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent font-mono"
                 />
               </div>
               <p className="text-[11px] text-slate-500 mt-1">
                 {isUrdu
-                  ? 'سکول ہیڈز اپنے 8 ہندسوں کا EMIS کوڈ درج کریں۔'
-                  : 'School heads: enter your 8-digit EMIS code as username.'}
+                  ? 'ڈپٹی ڈی ای او: dydeowpindigheb@gmail.com · اے ای اوز: اپنے مرکز کا یوزر نیم · سکولز: اپنا 8 ہندسوں کا EMIS کوڈ'
+                  : 'Dy. DEO: dydeowpindigheb@gmail.com · AEOs: official username · Schools: 8-digit EMIS code.'}
               </p>
             </div>
 
@@ -124,8 +124,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
               </div>
               <p className="text-[11px] text-slate-500 mt-1">
                 {isUrdu
-                  ? 'ابتدائی عارضی پاس ورڈ آپ کا اپنا EMIS کوڈ ہی ہے۔'
-                  : 'For new schools, initial temporary password is your EMIS code.'}
+                  ? 'اے ای اوز کے اسناد ڈپٹی ڈی ای او اور سکولوں کے اسناد متعلقہ اے ای او نے ترتیب دیے ہیں۔'
+                  : 'AEO credentials set by Dy. DEO; school credentials set by their Markaz AEO.'}
               </p>
             </div>
 
@@ -145,39 +145,55 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           <div className="mt-6 pt-5 border-t border-slate-200">
             <div className="flex items-center justify-between mb-2.5">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                {isUrdu ? 'فوری ٹیسٹ اور جائزہ کیلئے منتخب کریں' : 'Instant Demo Switcher (1-Click)'}
+                {isUrdu ? 'فوری ٹیسٹ اور جائزہ کیلئے منتخب کریں' : 'Role Simulator (1-Click)'}
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-left">
               <button
                 type="button"
-                onClick={() => handleQuickSelect('aeo_admin')}
+                onClick={() => handleQuickSelect('dy_deo')}
                 className="p-2.5 rounded-lg border border-slate-200 hover:border-emerald-600 hover:bg-emerald-50/50 transition-colors group"
               >
                 <div className="flex items-center gap-2">
                   <Shield className="w-4 h-4 text-emerald-700 shrink-0" />
                   <div className="min-w-0">
                     <div className="text-xs font-semibold text-slate-900 group-hover:text-emerald-800 truncate">
-                      {isUrdu ? 'معاون تعلیمی افسر' : 'AEO Officer (Admin)'}
+                      {isUrdu ? 'ڈپٹی ڈی ای او' : 'Dy. DEO (Authority)'}
                     </div>
-                    <div className="text-[10px] text-slate-500 truncate">Full cluster oversight</div>
+                    <div className="text-[10px] text-slate-500 truncate">dydeowpindigheb@gmail.com</div>
                   </div>
                 </div>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleQuickSelect('supervisor')}
-                className="p-2.5 rounded-lg border border-slate-200 hover:border-blue-600 hover:bg-blue-50/50 transition-colors group"
+                onClick={() => handleQuickSelect('aeo_admin', 'aeo.pindigheb')}
+                className="p-2.5 rounded-lg border border-slate-200 hover:border-amber-600 hover:bg-amber-50/50 transition-colors group"
               >
                 <div className="flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-blue-700 shrink-0" />
+                  <KeyRound className="w-4 h-4 text-amber-700 shrink-0" />
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-slate-900 group-hover:text-blue-800 truncate">
-                      {isUrdu ? 'نگران افسر' : 'Supervisor / Dy DEO'}
+                    <div className="text-xs font-semibold text-slate-900 group-hover:text-amber-800 truncate">
+                      AEO Pindi Gheb City
                     </div>
-                    <div className="text-[10px] text-slate-500 truncate">Read-only audit view</div>
+                    <div className="text-[10px] text-amber-700 font-mono truncate">Markaz: Pindi Gheb City</div>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickSelect('aeo_admin', 'aeo.khaur')}
+                className="p-2.5 rounded-lg border border-slate-200 hover:border-purple-600 hover:bg-purple-50/50 transition-colors group"
+              >
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-purple-700 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-slate-900 group-hover:text-purple-800 truncate">
+                      AEO Khaur
+                    </div>
+                    <div className="text-[10px] text-purple-700 font-mono truncate">Markaz: Khaur</div>
                   </div>
                 </div>
               </button>
@@ -185,31 +201,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
               <button
                 type="button"
                 onClick={() => handleQuickSelect('school_user', '37120101')}
-                className="p-2.5 rounded-lg border border-slate-200 hover:border-amber-600 hover:bg-amber-50/50 transition-colors group"
+                className="p-2.5 rounded-lg border border-slate-200 hover:border-blue-600 hover:bg-blue-50/50 transition-colors group"
               >
                 <div className="flex items-center gap-2">
-                  <SchoolIcon className="w-4 h-4 text-amber-700 shrink-0" />
+                  <SchoolIcon className="w-4 h-4 text-blue-700 shrink-0" />
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold text-slate-900 group-hover:text-amber-800 truncate">
+                    <div className="text-xs font-semibold text-slate-900 group-hover:text-blue-800 truncate">
                       GPS Pindi Gheb No. 1
                     </div>
-                    <div className="text-[10px] text-amber-700 font-mono truncate">37120101 (Public)</div>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('school_user', '37120102')}
-                className="p-2.5 rounded-lg border border-slate-200 hover:border-purple-600 hover:bg-purple-50/50 transition-colors group"
-              >
-                <div className="flex items-center gap-2">
-                  <SchoolIcon className="w-4 h-4 text-purple-700 shrink-0" />
-                  <div className="min-w-0">
-                    <div className="text-xs font-semibold text-slate-900 group-hover:text-purple-800 truncate">
-                      GGES Malhuwali
-                    </div>
-                    <div className="text-[10px] text-purple-700 font-mono truncate">37120102 (Approved)</div>
+                    <div className="text-[10px] text-blue-700 font-mono truncate">EMIS: 37120101</div>
                   </div>
                 </div>
               </button>

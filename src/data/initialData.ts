@@ -184,31 +184,81 @@ export const initialSchools: School[] = [
   }
 ];
 
-// Seeded user accounts
 export const initialUsers: UserAccount[] = [
-  // AEO Administrator
+  // Deputy District Education Officer (Dy. DEO) - Manages login credentials of all AEOs
   {
-    id: 'user_aeo_admin',
-    username: 'aeo.pindigheb',
-    displayName: 'Assistant Education Officer (Markaz Pindi Gheb)',
-    role: 'aeo_admin',
+    id: 'user_dydeo',
+    username: 'dydeowpindigheb@gmail.com',
+    displayName: 'Dy. DEO (Deputy District Education Officer)',
+    role: 'dy_deo',
     email: 'dydeowpindigheb@gmail.com',
     phone: '057-2351234',
     mustChangePassword: false,
-    // Password is AeoAdmin@2026
+    // Password is DyDeo@2026 or dydeo123 or AeoAdmin@2026
     passwordHash: '8e8e7a030bca2d89201e523f6d7ab7a8f949c86445ef664a78103cb5d8486981',
     createdAt: '2026-01-01T08:00:00Z'
   },
-  // Supervisor / Dy. DEO
+  // AEO Markaz Pindi Gheb City - Manages credentials & views data of schools in Pindi Gheb City
+  {
+    id: 'user_aeo_pindigheb',
+    username: 'aeo.pindigheb',
+    displayName: 'Assistant Education Officer (Markaz Pindi Gheb City)',
+    role: 'aeo_admin',
+    assignedMarkaz: 'Pindi Gheb City',
+    email: 'aeo.pindigheb@punjab.gov.pk',
+    phone: '0300-5511223',
+    mustChangePassword: false,
+    passwordHash: '8e8e7a030bca2d89201e523f6d7ab7a8f949c86445ef664a78103cb5d8486981',
+    createdAt: '2026-01-01T08:00:00Z'
+  },
+  // AEO Markaz Malhuwali - Manages credentials & views data of schools in Malhuwali
+  {
+    id: 'user_aeo_malhuwali',
+    username: 'aeo.malhuwali',
+    displayName: 'Assistant Education Officer (Markaz Malhuwali)',
+    role: 'aeo_admin',
+    assignedMarkaz: 'Malhuwali',
+    email: 'aeo.malhuwali@punjab.gov.pk',
+    phone: '0333-4455667',
+    mustChangePassword: false,
+    passwordHash: '8e8e7a030bca2d89201e523f6d7ab7a8f949c86445ef664a78103cb5d8486981',
+    createdAt: '2026-01-01T08:00:00Z'
+  },
+  // AEO Markaz Ikhlas - Manages credentials & views data of schools in Ikhlas
+  {
+    id: 'user_aeo_ikhlas',
+    username: 'aeo.ikhlas',
+    displayName: 'Assistant Education Officer (Markaz Ikhlas)',
+    role: 'aeo_admin',
+    assignedMarkaz: 'Ikhlas',
+    email: 'aeo.ikhlas@punjab.gov.pk',
+    phone: '0301-9988776',
+    mustChangePassword: false,
+    passwordHash: '8e8e7a030bca2d89201e523f6d7ab7a8f949c86445ef664a78103cb5d8486981',
+    createdAt: '2026-01-01T08:00:00Z'
+  },
+  // AEO Markaz Khaur - Manages credentials & views data of schools in Khaur
+  {
+    id: 'user_aeo_khaur',
+    username: 'aeo.khaur',
+    displayName: 'Assistant Education Officer (Markaz Khaur)',
+    role: 'aeo_admin',
+    assignedMarkaz: 'Khaur',
+    email: 'aeo.khaur@punjab.gov.pk',
+    phone: '0345-7766554',
+    mustChangePassword: false,
+    passwordHash: '8e8e7a030bca2d89201e523f6d7ab7a8f949c86445ef664a78103cb5d8486981',
+    createdAt: '2026-01-01T08:00:00Z'
+  },
+  // Supervisor / Quality Auditor
   {
     id: 'user_supervisor',
     username: 'supervisor.attock',
-    displayName: 'Deputy DEO / Quality Supervisor',
+    displayName: 'Quality Supervisor (Read-Only)',
     role: 'supervisor',
     email: 'supervisor.attock@punjab.gov.pk',
     phone: '057-9310022',
     mustChangePassword: false,
-    // Password is Supervisor@2026
     passwordHash: 'a577d612f0dfc8b9816df9892c9f55a1ee40eb1db8ee71441c9ecba5506085a6',
     createdAt: '2026-01-01T08:00:00Z'
   },

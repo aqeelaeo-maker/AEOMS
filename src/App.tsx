@@ -17,6 +17,8 @@ import { SubmissionWorkflow } from './components/school/SubmissionWorkflow';
 import { ReportsHub } from './components/reports/ReportsHub';
 import { OfficialDossierPrint } from './components/reports/OfficialDossierPrint';
 import { AuditTrailView } from './components/audit/AuditTrailView';
+import { AeoCredentialsManager } from './components/auth/AeoCredentialsManager';
+import { SchoolCredentialsManager } from './components/auth/SchoolCredentialsManager';
 import { getSchools, getSubmissions, getSchoolByEmis } from './services/storage';
 import { School as SchoolIcon, ArrowLeft, ChevronDown, Eye, CheckCircle2 } from 'lucide-react';
 
@@ -24,6 +26,8 @@ const MainLayout: React.FC = () => {
   const {
     currentUser,
     currentSchool,
+    allowedSchools,
+    isDyDEO,
     isAEO,
     isSupervisor,
     isSchoolUser,
@@ -39,14 +43,14 @@ const MainLayout: React.FC = () => {
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
   const [printDossierSchoolEmis, setPrintDossierSchoolEmis] = useState<string | null>(null);
 
-  const schools = getSchools();
+  const schools = allowedSchools;
   const submissions = getSubmissions();
   const pendingReviewsCount = submissions.filter(
     s => s.status === 'submitted' || s.status === 'under_review'
   ).length;
 
   // Active target school:
-  // If school user, ALWAYS their assigned school. If AEO or Supervisor, the selected school or first school fallback.
+  // If school user, ALWAYS their assigned school. If AEO, their markaz schools.
   const activeSchool = currentSchool || (schools.length > 0 ? schools[0] : null);
 
   const handleSelectSchoolFromDashboard = (emisCode: string, targetTab: string = 'profile') => {
@@ -226,8 +230,18 @@ const MainLayout: React.FC = () => {
               <ReportsHub onOpenDossierPrint={handleOpenPrintDossier} />
             )}
 
+            {/* AEO Credentials Management (Dy. DEO exclusive) */}
+            {activeTab === 'aeo_credentials' && isDyDEO && (
+              <AeoCredentialsManager />
+            )}
+
+            {/* School Credentials Management (AEO & Dy. DEO) */}
+            {activeTab === 'school_credentials' && (isAEO || isDyDEO) && (
+              <SchoolCredentialsManager />
+            )}
+
             {/* System Audit Logs View */}
-            {activeTab === 'audit' && (isAEO || isSupervisor) && (
+            {activeTab === 'audit' && (isAEO || isSupervisor || isDyDEO) && (
               <AuditTrailView />
             )}
           </main>

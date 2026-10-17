@@ -26,14 +26,14 @@ interface ReportsHubProps {
 }
 
 export const ReportsHub: React.FC<ReportsHubProps> = ({ onOpenDossierPrint }) => {
-  const { isAEO, isSupervisor, currentSchool } = useAuth();
+  const { isDyDEO, isAEO, isSupervisor, currentSchool, allowedSchools, currentUser } = useAuth();
   const { t, isUrdu } = useLanguage();
 
   const [activeReportType, setActiveReportType] = useState<
     'consolidated' | 'nsb_audit' | 'facilities_gap' | 'enrollment_register'
   >('consolidated');
 
-  const schools = getSchools();
+  const schools = allowedSchools;
   const submissions = getSubmissions();
 
   // Helper to trigger direct CSV file download with UTF-8 BOM
