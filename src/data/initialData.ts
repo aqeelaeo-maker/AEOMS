@@ -188,66 +188,74 @@ export const initialUsers: UserAccount[] = [
   // Deputy District Education Officer (Dy. DEO) - Manages login credentials of all AEOs
   {
     id: 'user_dydeo',
-    username: 'dydeowpindigheb@gmail.com',
+    username: 'Admin',
     displayName: 'Dy. DEO (Deputy District Education Officer)',
     role: 'dy_deo',
     email: 'dydeowpindigheb@gmail.com',
     phone: '057-2351234',
     mustChangePassword: false,
-    // Password is DyDeo@2026 or dydeo123 or AeoAdmin@2026
-    passwordHash: '8e8e7a030bca2d89201e523f6d7ab7a8f949c86445ef664a78103cb5d8486981',
+    // Default password is 'admin' (User can change after that)
+    passwordHash: '65fd4e672b3a991df5254add6a12a8b02201dbdbf66fc047fec80fc6cb8d9083',
     createdAt: '2026-01-01T08:00:00Z'
   },
-  // AEO Markaz Pindi Gheb City - Manages credentials & views data of schools in Pindi Gheb City
+  // AEO Markaz Pindi Gheb City - Username & Password: CNIC Number
   {
     id: 'user_aeo_pindigheb',
-    username: 'aeo.pindigheb',
-    displayName: 'Assistant Education Officer (Markaz Pindi Gheb City)',
+    username: '37102-1122334-1',
+    cnic: '37102-1122334-1',
+    displayName: 'AEO Tariq Mehmood (Markaz Pindi Gheb City)',
     role: 'aeo_admin',
     assignedMarkaz: 'Pindi Gheb City',
     email: 'aeo.pindigheb@punjab.gov.pk',
     phone: '0300-5511223',
     mustChangePassword: false,
-    passwordHash: '8e8e7a030bca2d89201e523f6d7ab7a8f949c86445ef664a78103cb5d8486981',
+    // Default password is CNIC '37102-1122334-1'
+    passwordHash: '8be68eb81c7ce83e440bb810943c9ef29332500be00ea4132aafff085ead79e6',
     createdAt: '2026-01-01T08:00:00Z'
   },
-  // AEO Markaz Malhuwali - Manages credentials & views data of schools in Malhuwali
+  // AEO Markaz Malhuwali - Username & Password: CNIC Number
   {
     id: 'user_aeo_malhuwali',
-    username: 'aeo.malhuwali',
-    displayName: 'Assistant Education Officer (Markaz Malhuwali)',
+    username: '37102-2233445-3',
+    cnic: '37102-2233445-3',
+    displayName: 'AEO Muhammad Arshad (Markaz Malhuwali)',
     role: 'aeo_admin',
     assignedMarkaz: 'Malhuwali',
     email: 'aeo.malhuwali@punjab.gov.pk',
     phone: '0333-4455667',
     mustChangePassword: false,
-    passwordHash: '8e8e7a030bca2d89201e523f6d7ab7a8f949c86445ef664a78103cb5d8486981',
+    // Default password is CNIC '37102-2233445-3'
+    passwordHash: '1c72376da7ab0fb48d1abd1d6bfa0bf1d1da2b7cf333f091e3181f844226ca66',
     createdAt: '2026-01-01T08:00:00Z'
   },
-  // AEO Markaz Ikhlas - Manages credentials & views data of schools in Ikhlas
+  // AEO Markaz Ikhlas - Username & Password: CNIC Number
   {
     id: 'user_aeo_ikhlas',
-    username: 'aeo.ikhlas',
-    displayName: 'Assistant Education Officer (Markaz Ikhlas)',
+    username: '37102-3344556-5',
+    cnic: '37102-3344556-5',
+    displayName: 'AEO Sajid Hussain (Markaz Ikhlas)',
     role: 'aeo_admin',
     assignedMarkaz: 'Ikhlas',
     email: 'aeo.ikhlas@punjab.gov.pk',
     phone: '0301-9988776',
     mustChangePassword: false,
-    passwordHash: '8e8e7a030bca2d89201e523f6d7ab7a8f949c86445ef664a78103cb5d8486981',
+    // Default password is CNIC '37102-3344556-5'
+    passwordHash: '82ffe800c300bd548688f0bb81018c0ea2d9df6cb73594e2037a2d22adcadce7',
     createdAt: '2026-01-01T08:00:00Z'
   },
-  // AEO Markaz Khaur - Manages credentials & views data of schools in Khaur
+  // AEO Markaz Khaur - Username & Password: CNIC Number
   {
     id: 'user_aeo_khaur',
-    username: 'aeo.khaur',
-    displayName: 'Assistant Education Officer (Markaz Khaur)',
+    username: '37102-4455667-7',
+    cnic: '37102-4455667-7',
+    displayName: 'AEO Abdul Rehman (Markaz Khaur)',
     role: 'aeo_admin',
     assignedMarkaz: 'Khaur',
     email: 'aeo.khaur@punjab.gov.pk',
     phone: '0345-7766554',
     mustChangePassword: false,
-    passwordHash: '8e8e7a030bca2d89201e523f6d7ab7a8f949c86445ef664a78103cb5d8486981',
+    // Default password is CNIC '37102-4455667-7'
+    passwordHash: '1c5548da616d5a2e148e135ec53474f0faa118a9cd8c7947f6f4825ca0f8e5e0',
     createdAt: '2026-01-01T08:00:00Z'
   },
   // Supervisor / Quality Auditor

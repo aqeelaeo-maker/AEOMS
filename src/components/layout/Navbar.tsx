@@ -32,7 +32,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenDossierPrint,
   onToggleSidebar
 }) => {
-  const { currentUser, currentSchool, isDyDEO, isAEO, isSupervisor, isSchoolUser, logout, selectedSchoolEmis, setSelectedSchoolEmis } = useAuth();
+  const {
+    currentUser,
+    currentSchool,
+    isDyDEO,
+    isAEO,
+    isSupervisor,
+    isSchoolUser,
+    logout,
+    openChangePasswordModal,
+    selectedSchoolEmis,
+    setSelectedSchoolEmis
+  } = useAuth();
   const { language, setLanguage, t, isUrdu } = useLanguage();
 
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -201,6 +212,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <input type="file" accept=".json" onChange={handleRestoreBackup} className="hidden" />
                     </label>
                   </div>
+
+                  {/* Change Password Option for Every User */}
+                  <button
+                    type="button"
+                    onClick={openChangePasswordModal}
+                    title={isUrdu ? 'پاس ورڈ تبدیل کریں' : 'Change Password'}
+                    className="p-2 text-emerald-100 hover:text-white hover:bg-emerald-800 rounded-lg text-xs flex items-center gap-1.5 transition-colors border border-emerald-700/60 bg-emerald-900/60"
+                  >
+                    <KeyRound className="w-3.5 h-3.5 text-amber-300" />
+                    <span className="text-[11px] font-semibold hidden md:inline">
+                      {isUrdu ? 'پاس ورڈ تبدیل کریں' : 'Change Password'}
+                    </span>
+                  </button>
 
                   {/* Logout */}
                   <button

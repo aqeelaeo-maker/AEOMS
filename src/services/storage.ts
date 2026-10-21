@@ -30,7 +30,7 @@ import {
 import { db, doc, handleFirestoreError, OperationType } from '../firebase/config';
 import { setDoc, getDoc, deleteDoc } from 'firebase/firestore';
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   SCHOOLS: 'aeo_schools_v1',
   USERS: 'aeo_users_v1',
   ENROLLMENT: 'aeo_enrollment_v1',
@@ -51,22 +51,34 @@ export function initializeStorage(): void {
   if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(initialUsers));
   } else {
-    // Ensure Dy. DEO and markaz-assigned AEO accounts are present
+    // Ensure Dy. DEO (Admin/admin) and markaz-assigned AEO accounts (CNIC/CNIC) are synced
     try {
       const storedUsers: UserAccount[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
-      const hasDyDeo = storedUsers.some(u => u.username === 'dydeowpindigheb@gmail.com' || u.id === 'user_dydeo');
-      if (!hasDyDeo) {
-        const merged = [...storedUsers];
-        for (const iu of initialUsers) {
-          const existingIdx = merged.findIndex(u => u.username === iu.username || u.id === iu.id);
-          if (existingIdx >= 0) {
-            merged[existingIdx] = { ...iu, ...merged[existingIdx], role: iu.role, assignedMarkaz: iu.assignedMarkaz || merged[existingIdx].assignedMarkaz };
-          } else {
-            merged.push(iu);
-          }
+      const merged = [...storedUsers];
+      for (const iu of initialUsers) {
+        const existingIdx = merged.findIndex(
+          u =>
+            u.id === iu.id ||
+            u.username.toLowerCase() === iu.username.toLowerCase() ||
+            (iu.email && u.email?.toLowerCase() === iu.email.toLowerCase()) ||
+            (iu.assignedMarkaz && u.assignedMarkaz === iu.assignedMarkaz)
+        );
+        if (existingIdx >= 0) {
+          merged[existingIdx] = {
+            ...merged[existingIdx],
+            username: iu.username,
+            role: iu.role,
+            displayName: iu.displayName,
+            cnic: iu.cnic || merged[existingIdx].cnic,
+            assignedMarkaz: iu.assignedMarkaz || merged[existingIdx].assignedMarkaz,
+            email: iu.email || merged[existingIdx].email,
+            passwordHash: merged[existingIdx].passwordHash || iu.passwordHash
+          };
+        } else {
+          merged.push(iu);
         }
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(merged));
       }
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(merged));
     } catch {
       // fallback
     }
@@ -259,8 +271,42 @@ export function getUsers(): UserAccount[] {
   }
 }
 
-export function getUserByUsername(username: string): UserAccount | undefined {
-  return getUsers().find(u => u.username.toLowerCase() === username.trim().toLowerCase());
+export function getUserByUsername(identifier: string): UserAccount | undefined {
+  if (!identifier) return undefined;
+  const q = identifier.trim();
+  const qLower = q.toLowerCase();
+  const qDigits = q.replace(/[^0-9]/g, '');
+  const users = getUsers();
+
+  return users.find(u => {
+    // Exact username match (case-insensitive)
+    if (u.username.toLowerCase() === qLower) return true;
+
+    // Dy. DEO alias matching
+    if (
+      (u.role === 'dy_deo' || u.id === 'user_dydeo' || u.email?.toLowerCase() === 'dydeowpindigheb@gmail.com') &&
+      (qLower === 'admin' || qLower === 'dydeowpindigheb@gmail.com' || qLower === 'dydeo')
+    ) {
+      return true;
+    }
+
+    // Email match
+    if (u.email && u.email.toLowerCase() === qLower) return true;
+
+    // School EMIS match
+    if (u.schoolEmisCode && (u.schoolEmisCode === q || u.schoolEmisCode === qDigits)) return true;
+
+    // AEO CNIC match (with or without hyphens)
+    if (u.cnic) {
+      if (u.cnic.toLowerCase() === qLower) return true;
+      if (qDigits && u.cnic.replace(/[^0-9]/g, '') === qDigits) return true;
+    }
+    if (u.role === 'aeo_admin' && qDigits && u.username.replace(/[^0-9]/g, '') === qDigits) {
+      return true;
+    }
+
+    return false;
+  });
 }
 
 export async function updateUserPassword(userId: string, newPasswordPlain: string): Promise<boolean> {
@@ -322,7 +368,8 @@ export function getAeoAccounts(): UserAccount[] {
 export async function saveAeoAccount(
   aeoData: {
     id?: string;
-    username: string;
+    username?: string;
+    cnic?: string;
     displayName: string;
     assignedMarkaz: string;
     email?: string;
@@ -332,9 +379,9 @@ export async function saveAeoAccount(
   adminUser: UserAccount
 ): Promise<{ success: boolean; error?: string; aeo?: UserAccount }> {
   const isAuthorized =
-    adminUser.email === 'dydeowpindigheb@gmail.com' ||
+    adminUser.email?.toLowerCase() === 'dydeowpindigheb@gmail.com' ||
     adminUser.role === 'dy_deo' ||
-    adminUser.username === 'dydeowpindigheb@gmail.com';
+    adminUser.username.toLowerCase() === 'admin';
 
   if (!isAuthorized) {
     return {
@@ -344,11 +391,16 @@ export async function saveAeoAccount(
   }
 
   const users = getUsers();
-  const trimmedUsername = aeoData.username.trim();
+  const cnicNum = (aeoData.cnic || aeoData.username || '').trim();
+  const trimmedUsername = (aeoData.username || cnicNum).trim();
   const isNew = !aeoData.id;
 
-  if (isNew && users.some(u => u.username.toLowerCase() === trimmedUsername.toLowerCase())) {
-    return { success: false, error: `Official username "${trimmedUsername}" is already assigned to another account.` };
+  if (!cnicNum && !trimmedUsername) {
+    return { success: false, error: 'CNIC number is required for AEO official username and credentials.' };
+  }
+
+  if (isNew && users.some(u => u.username.toLowerCase() === trimmedUsername.toLowerCase() || (u.cnic && u.cnic === cnicNum))) {
+    return { success: false, error: `An AEO account with CNIC / Username "${trimmedUsername}" is already registered.` };
   }
 
   const targetId = aeoData.id || 'user_aeo_' + Date.now();
@@ -358,16 +410,18 @@ export async function saveAeoAccount(
   if (aeoData.passwordPlain && aeoData.passwordPlain.trim()) {
     passwordHash = await hashPassword(aeoData.passwordPlain.trim());
   } else if (!passwordHash) {
-    passwordHash = await hashPassword('AeoAdmin@2026');
+    // Default password for AEO is their CNIC Number
+    passwordHash = await hashPassword(cnicNum || trimmedUsername);
   }
 
   const updatedAeo: UserAccount = {
     id: targetId,
     username: trimmedUsername,
+    cnic: cnicNum || trimmedUsername,
     displayName: aeoData.displayName.trim(),
     role: 'aeo_admin',
     assignedMarkaz: aeoData.assignedMarkaz.trim(),
-    email: aeoData.email?.trim() || `${trimmedUsername}@punjab.gov.pk`,
+    email: aeoData.email?.trim() || `${cnicNum.replace(/[^0-9]/g, '')}@punjab.gov.pk`,
     phone: aeoData.phone?.trim() || '',
     mustChangePassword: false,
     passwordHash,
@@ -390,10 +444,47 @@ export async function saveAeoAccount(
     adminUser.role,
     isNew ? 'Create AEO Credentials' : 'Update AEO Credentials',
     'AEO Credentials Management',
-    `Dy. DEO ${isNew ? 'issued new' : 'updated'} official login credentials for AEO ${updatedAeo.displayName} (Username: ${updatedAeo.username}, Markaz: ${updatedAeo.assignedMarkaz}).`
+    `Dy. DEO ${isNew ? 'issued new' : 'updated'} official login credentials for AEO ${updatedAeo.displayName} (CNIC: ${updatedAeo.cnic}, Markaz: ${updatedAeo.assignedMarkaz}).`
   );
 
   return { success: true, aeo: updatedAeo };
+}
+
+export async function resetAeoPasswordToDefaultCnic(
+  aeoId: string,
+  adminUser: UserAccount
+): Promise<{ success: boolean; error?: string }> {
+  const isAuthorized =
+    adminUser.email?.toLowerCase() === 'dydeowpindigheb@gmail.com' ||
+    adminUser.role === 'dy_deo' ||
+    adminUser.username.toLowerCase() === 'admin';
+
+  if (!isAuthorized) {
+    return { success: false, error: 'Permission denied: Only Dy. DEO can reset AEO passwords.' };
+  }
+
+  const users = getUsers();
+  const aeo = users.find(u => u.id === aeoId);
+  if (!aeo) return { success: false, error: 'AEO not found' };
+
+  const defaultPassword = aeo.cnic || aeo.username;
+  const newHash = await hashPassword(defaultPassword);
+  aeo.passwordHash = newHash;
+  aeo.mustChangePassword = false;
+
+  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+  syncToFirestore('users', aeo.id, aeo);
+
+  addAuditLog(
+    adminUser.id,
+    adminUser.displayName,
+    adminUser.role,
+    'Reset AEO Password',
+    'AEO Credentials Management',
+    `Dy. DEO reset password for AEO ${aeo.displayName} to default CNIC (${defaultPassword}).`
+  );
+
+  return { success: true };
 }
 
 export async function deleteAeoAccount(
@@ -401,9 +492,9 @@ export async function deleteAeoAccount(
   adminUser: UserAccount
 ): Promise<{ success: boolean; error?: string }> {
   const isAuthorized =
-    adminUser.email === 'dydeowpindigheb@gmail.com' ||
+    adminUser.email?.toLowerCase() === 'dydeowpindigheb@gmail.com' ||
     adminUser.role === 'dy_deo' ||
-    adminUser.username === 'dydeowpindigheb@gmail.com';
+    adminUser.username.toLowerCase() === 'admin';
 
   if (!isAuthorized) {
     return {
@@ -448,9 +539,9 @@ export async function saveSchoolCredentials(
   if (!school) return { success: false, error: 'School not found' };
 
   const isDyDeo =
-    adminUser.email === 'dydeowpindigheb@gmail.com' ||
+    adminUser.email?.toLowerCase() === 'dydeowpindigheb@gmail.com' ||
     adminUser.role === 'dy_deo' ||
-    adminUser.username === 'dydeowpindigheb@gmail.com';
+    adminUser.username.toLowerCase() === 'admin';
 
   const isMarkazAeo =
     adminUser.role === 'aeo_admin' &&

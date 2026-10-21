@@ -4,6 +4,7 @@ import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { Navbar } from './components/layout/Navbar';
 import { Sidebar } from './components/layout/Sidebar';
 import { PasswordChangeModal } from './components/auth/PasswordChangeModal';
+import { SignInPage } from './components/auth/SignInPage';
 import { AeoDashboard } from './components/dashboard/AeoDashboard';
 import { SchoolsListView } from './components/school/SchoolsListView';
 import { SchoolProfileView } from './components/school/SchoolProfileView';
@@ -270,17 +271,27 @@ const MainLayout: React.FC = () => {
         />
       )}
 
-      {/* Mandatory Password Change Modal */}
+      {/* Password Change Modal */}
       <PasswordChangeModal />
     </div>
   );
+};
+
+const AppContent: React.FC = () => {
+  const { currentUser, isAuthenticated } = useAuth();
+
+  if (!currentUser || !isAuthenticated) {
+    return <SignInPage />;
+  }
+
+  return <MainLayout />;
 };
 
 export default function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <MainLayout />
+        <AppContent />
       </AuthProvider>
     </LanguageProvider>
   );

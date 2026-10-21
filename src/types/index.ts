@@ -27,9 +27,10 @@ export interface School {
 
 export interface UserAccount {
   id: string;
-  username: string; // EMIS code for school, or custom username
+  username: string; // EMIS code for school, CNIC for AEO, or Admin for Dy. DEO
   displayName: string;
   role: UserRole;
+  cnic?: string; // Official CNIC number for AEO
   assignedMarkaz?: string; // For AEOs: e.g. 'Pindi Gheb City', 'Malhuwali', 'Ikhlas', 'Khaur'
   schoolEmisCode?: string;
   email?: string;

@@ -104,8 +104,10 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({ onInspectSchoo
     setModalOpen(true);
   };
 
+  const canManageSchool = isAEO || isDyDEO;
+
   const handleDelete = (emisCode: string, schoolName: string) => {
-    if (!currentUser || !isAEO) return;
+    if (!currentUser || !canManageSchool) return;
     const confirmDelete = window.confirm(
       isUrdu
         ? `کیا آپ واقعی اس سکول "${schoolName}" (EMIS: ${emisCode}) کو حذف کرنا چاہتے ہیں؟ اس سے منسلک صارف اکاؤنٹ بھی ختم ہو جائے گا۔`
@@ -120,7 +122,7 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({ onInspectSchoo
   };
 
   const handleResetPassword = async (emisCode: string, schoolName: string) => {
-    if (!currentUser || !isAEO) return;
+    if (!currentUser || !canManageSchool) return;
     const confirmReset = window.confirm(
       isUrdu
         ? `اس سکول (${schoolName}) کا پاس ورڈ واپس ابتدائی عارضی EMIS کوڈ (${emisCode}) پر ری سیٹ کریں؟`
@@ -212,11 +214,11 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({ onInspectSchoo
           </div>
         </div>
 
-        {isAEO && (
+        {canManageSchool && (
           <button
             type="button"
             onClick={handleOpenAdd}
-            className="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-semibold flex items-center gap-2 shadow-xs transition-colors self-start sm:self-auto"
+            className="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-semibold flex items-center gap-2 shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>{isUrdu ? 'نیا سکول شامل کریں' : 'Add New School'}</span>
@@ -407,7 +409,7 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({ onInspectSchoo
                           </button>
 
                           {/* Edit School Button */}
-                          {isAEO && (
+                          {canManageSchool && (
                             <button
                               type="button"
                               onClick={() => handleOpenEdit(school)}
@@ -419,7 +421,7 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({ onInspectSchoo
                           )}
 
                           {/* Reset Initial Password Button */}
-                          {isAEO && (
+                          {canManageSchool && (
                             <button
                               type="button"
                               onClick={() => handleResetPassword(school.emisCode, school.name)}
@@ -431,7 +433,7 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({ onInspectSchoo
                           )}
 
                           {/* Delete School Button */}
-                          {isAEO && (
+                          {canManageSchool && (
                             <button
                               type="button"
                               onClick={() => handleDelete(school.emisCode, school.name)}

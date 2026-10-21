@@ -7,7 +7,8 @@ import {
   getSchoolByEmis,
   getSchools,
   getSchoolsForUser,
-  initializeStorage
+  initializeStorage,
+  STORAGE_KEYS
 } from '../services/storage';
 import { hashPassword } from '../data/initialData';
 import { ensureFirebaseAuth } from '../firebase/config';
@@ -22,6 +23,9 @@ interface AuthContextType {
   isSupervisor: boolean;
   isSchoolUser: boolean;
   mustChangePasswordModalOpen: boolean;
+  isChangePasswordOpen: boolean;
+  openChangePasswordModal: () => void;
+  closeChangePasswordModal: () => void;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   submitPasswordChange: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
@@ -40,9 +44,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [selectedSchoolEmis, setSelectedSchoolEmisState] = useState<string | null>(null);
   const [mustChangePasswordModalOpen, setMustChangePasswordModalOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Initialize and retrieve cached session
+  // Initialize persistent state and retrieve cached session
   useEffect(() => {
     initializeStorage();
     ensureFirebaseAuth().catch(err => console.warn('Auth init note:', err));
@@ -60,14 +65,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSelectedSchoolEmisState(latest.schoolEmisCode);
           }
         }
-      } else {
-        // Default on initial launch: Dy. DEO command authority
-        const defaultAdmin = getUserByUsername('dydeowpindigheb@gmail.com') || getUserByUsername('aeo.pindigheb');
-        if (defaultAdmin) {
-          setCurrentUser(defaultAdmin);
-          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(defaultAdmin));
-        }
       }
+      // If no cached session, currentUser stays null to present the Sign In page
 
       const savedSelected = localStorage.getItem(SELECTED_SCHOOL_KEY);
       if (savedSelected) {
@@ -79,6 +78,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     }
   }, []);
+
+  const openChangePasswordModal = () => setIsChangePasswordOpen(true);
+  const closeChangePasswordModal = () => {
+    setIsChangePasswordOpen(false);
+    setMustChangePasswordModalOpen(false);
+  };
 
   const setSelectedSchoolEmis = (emisCode: string | null) => {
     // School user can NEVER switch away from their assigned EMIS
@@ -96,29 +101,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, plainPassword: string): Promise<{ success: boolean; error?: string }> => {
     const trimmedUser = username.trim();
+    const cleanPass = plainPassword.trim();
     const user = getUserByUsername(trimmedUser);
 
     if (!user) {
-      return { success: false, error: 'User account not found. Please check official email, username, or EMIS code.' };
+      return {
+        success: false,
+        error: 'User account not found. Please verify official Username / CNIC / EMIS code.'
+      };
     }
 
-    const hashedInput = await hashPassword(plainPassword);
+    const hashedInput = await hashPassword(cleanPass);
+    const passDigits = cleanPass.replace(/[^0-9]/g, '');
 
-    // Initial temporary password check: if user hasn't changed password, plainPassword equals EMIS code
-    const isInitialMatch = user.mustChangePassword && plainPassword.trim() === trimmedUser;
+    // 1. Password hash match (for updated/custom passwords)
     const isHashMatch = user.passwordHash === hashedInput;
 
-    // Known default credentials matches
-    const isDyDeoMatch =
-      (user.username === 'dydeowpindigheb@gmail.com' || user.email === 'dydeowpindigheb@gmail.com') &&
-      (plainPassword === 'DyDeo@2026' || plainPassword === 'dydeo123' || plainPassword === 'AeoAdmin@2026');
+    // 2. Default Dy. DEO: Username 'Admin' (or dydeowpindigheb@gmail.com), Password 'admin'
+    const isDyDeo =
+      user.role === 'dy_deo' ||
+      user.email?.toLowerCase() === 'dydeowpindigheb@gmail.com' ||
+      user.username.toLowerCase() === 'admin';
+    const isDefaultDyDeoMatch = isDyDeo && (cleanPass.toLowerCase() === 'admin' || cleanPass === 'Admin');
 
-    const isDefaultAeoMatch = user.role === 'aeo_admin' && (plainPassword === 'AeoAdmin@2026' || plainPassword === 'aeo123');
-    const isDefaultSuperMatch = user.username === 'supervisor.attock' && plainPassword === 'Supervisor@2026';
-    const isInitialEmisHashMatch = user.passwordHash === `${trimmedUser}_initial_hash` && plainPassword === trimmedUser;
+    // 3. Default AEO: Username & Password is CNIC Number (with or without hyphens)
+    const isAeo = user.role === 'aeo_admin';
+    const aeoCnic = user.cnic || user.username;
+    const aeoCnicDigits = aeoCnic.replace(/[^0-9]/g, '');
+    const isDefaultAeoMatch =
+      isAeo &&
+      (cleanPass === aeoCnic || (passDigits.length > 0 && passDigits === aeoCnicDigits) || cleanPass === user.username);
 
-    if (!isInitialMatch && !isHashMatch && !isDyDeoMatch && !isDefaultAeoMatch && !isDefaultSuperMatch && !isInitialEmisHashMatch) {
-      return { success: false, error: 'Incorrect password. Please verify credentials or contact Dy. DEO / AEO.' };
+    // 4. Default School: Username & Password is EMIS Code
+    const isSchool = user.role === 'school_user';
+    const schoolEmis = user.schoolEmisCode || user.username;
+    const isDefaultSchoolMatch =
+      isSchool && (cleanPass === schoolEmis || cleanPass === user.username);
+
+    // 5. Initial EMIS hash flag match
+    const isInitialEmisHashMatch =
+      user.passwordHash === `${schoolEmis}_initial_hash` && cleanPass === schoolEmis;
+
+    if (!isHashMatch && !isDefaultDyDeoMatch && !isDefaultAeoMatch && !isDefaultSchoolMatch && !isInitialEmisHashMatch) {
+      return {
+        success: false,
+        error: 'Incorrect password. Default: Dy. DEO: admin | AEO: CNIC Number | School: EMIS Code.'
+      };
     }
 
     // Success
@@ -145,20 +173,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(AUTH_STORAGE_KEY);
     setSelectedSchoolEmisState(null);
     setMustChangePasswordModalOpen(false);
+    setIsChangePasswordOpen(false);
   };
 
   const submitPasswordChange = async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
     if (!currentUser) return { success: false, error: 'No active session' };
 
-    if (newPassword.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters long' };
+    const trimmed = newPassword.trim();
+    if (trimmed.length < 4) {
+      return { success: false, error: 'Password must be at least 4 characters long' };
     }
 
-    if (currentUser.role === 'school_user' && newPassword.trim() === currentUser.username.trim()) {
+    if (currentUser.role === 'school_user' && trimmed === currentUser.username.trim()) {
       return { success: false, error: 'New password cannot be the same as your EMIS code!' };
     }
 
-    const updated = await updateUserPassword(currentUser.id, newPassword);
+    const updated = await updateUserPassword(currentUser.id, trimmed);
     if (!updated) return { success: false, error: 'Failed to update password' };
 
     const refreshed = getUserByUsername(currentUser.username);
@@ -167,12 +197,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(refreshed));
     }
     setMustChangePasswordModalOpen(false);
+    setIsChangePasswordOpen(false);
     return { success: true };
   };
 
   const demoLogin = (role: 'dy_deo' | 'aeo_admin' | 'supervisor' | 'school_user', idOrEmis?: string) => {
     if (role === 'dy_deo') {
-      const u = getUserByUsername('dydeowpindigheb@gmail.com') || getUsers().find(x => x.role === 'dy_deo');
+      const u =
+        getUserByUsername('Admin') ||
+        getUserByUsername('dydeowpindigheb@gmail.com') ||
+        getUsers().find(x => x.role === 'dy_deo');
       if (u) {
         setCurrentUser(u);
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(u));
@@ -180,11 +214,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setMustChangePasswordModalOpen(false);
       }
     } else if (role === 'aeo_admin') {
-      const targetUser = idOrEmis ? getUserByUsername(idOrEmis) : getUserByUsername('aeo.pindigheb');
-      const u = targetUser || getUsers().find(x => x.role === 'aeo_admin');
-      if (u) {
-        setCurrentUser(u);
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(u));
+      const targetUser = idOrEmis ? getUserByUsername(idOrEmis) : getUsers().find(x => x.role === 'aeo_admin');
+      if (targetUser) {
+        setCurrentUser(targetUser);
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(targetUser));
         setSelectedSchoolEmisState(null);
         setMustChangePasswordModalOpen(false);
       }
@@ -208,26 +241,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           displayName: school ? school.name : `School ${targetEmis}`,
           role: 'school_user',
           schoolEmisCode: targetEmis,
-          mustChangePassword: true,
+          mustChangePassword: false,
           passwordHash: `${targetEmis}_initial_hash`,
           createdAt: new Date().toISOString()
         };
         users.push(newUser);
-        localStorage.setItem('aeo_users_v1', JSON.stringify(users));
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
         u = newUser;
       }
       setCurrentUser(u);
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(u));
       setSelectedSchoolEmisState(targetEmis);
-      if (u.mustChangePassword) {
-        setMustChangePasswordModalOpen(true);
-      } else {
-        setMustChangePasswordModalOpen(false);
-      }
+      setMustChangePasswordModalOpen(false);
     }
   };
 
-  const isDyDEO = currentUser?.role === 'dy_deo' || currentUser?.email === 'dydeowpindigheb@gmail.com' || currentUser?.username === 'dydeowpindigheb@gmail.com';
+  const isDyDEO =
+    currentUser?.role === 'dy_deo' ||
+    currentUser?.email?.toLowerCase() === 'dydeowpindigheb@gmail.com' ||
+    currentUser?.username?.toLowerCase() === 'admin';
   const isAEO = currentUser?.role === 'aeo_admin';
   const isSupervisor = currentUser?.role === 'supervisor';
   const isSchoolUser = currentUser?.role === 'school_user';
@@ -254,6 +286,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isSupervisor: !!isSupervisor,
         isSchoolUser: !!isSchoolUser,
         mustChangePasswordModalOpen,
+        isChangePasswordOpen,
+        openChangePasswordModal,
+        closeChangePasswordModal,
         login,
         logout,
         submitPasswordChange,
