@@ -11,7 +11,7 @@ import {
   KeyRound,
   X
 } from 'lucide-react';
-import { DualPunjabLogos } from '../common/OfficialLogos';
+import { SchoolEducationDeptLogo } from '../common/OfficialLogos';
 
 interface NavTab {
   id: string;
@@ -136,8 +136,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Left Pane Header with Official Government of Punjab & SED Logos */}
         <div className="p-3.5 border-b border-emerald-900 bg-emerald-900/60 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
-            {/* Official Dual Logos */}
-            <DualPunjabLogos size="sm" spacing="gap-1.5" />
+            {/* Official School Education Department Logo */}
+            <SchoolEducationDeptLogo size="sm" />
             <div className="min-w-0">
               <div className="text-xs font-bold text-white tracking-tight leading-tight truncate">
                 {isUrdu ? 'محکمہ سکول ایجوکیشن' : 'School Education Dept'}

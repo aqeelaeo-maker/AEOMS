@@ -9,7 +9,7 @@ import {
   getSubmissionBySchool
 } from '../../services/storage';
 import { Printer, ArrowLeft, ShieldCheck, CheckCircle2 } from 'lucide-react';
-import { PunjabGovLogo, SchoolEducationDeptLogo } from '../common/OfficialLogos';
+import { SchoolEducationDeptLogo } from '../common/OfficialLogos';
 
 interface OfficialDossierPrintProps {
   school: School;
@@ -51,10 +51,10 @@ export const OfficialDossierPrint: React.FC<OfficialDossierPrintProps> = ({ scho
 
       {/* Official Government Dossier Sheet */}
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-8 sm:p-12 text-slate-900 border border-slate-200 print:border-none print:shadow-none print:p-6 font-sans">
-        {/* Punjab Government Official Header */}
+        {/* School Education Department Official Header */}
         <div className="border-b-2 border-slate-900 pb-4">
           <div className="flex items-center justify-between gap-4">
-            <PunjabGovLogo size="lg" />
+            <SchoolEducationDeptLogo size="lg" />
             <div className="text-center flex-1">
               <div className="text-[13px] font-bold tracking-widest text-emerald-900 uppercase">
                 Government of the Punjab · School Education Department

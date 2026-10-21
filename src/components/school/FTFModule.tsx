@@ -4,18 +4,20 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getFTF, saveFTF } from '../../services/storage';
 import { Receipt, Plus, Trash2, Check, ArrowDownRight, ArrowUpRight, Users, ShieldCheck } from 'lucide-react';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 interface FTFModuleProps {
   school: School;
 }
 
 export const FTFModule: React.FC<FTFModuleProps> = ({ school }) => {
-  const { isAEO, currentUser } = useAuth();
+  const { isDyDEO, isAEO, currentUser } = useAuth();
   const { t, isUrdu } = useLanguage();
 
   const [ftfData, setFtfData] = useState<FTFData>(() => getFTF(school.emisCode));
   const [showAddTx, setShowAddTx] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
+  const [deleteTxId, setDeleteTxId] = useState<string | null>(null);
 
   // New Transaction
   const [newTx, setNewTx] = useState<Partial<FTFTransaction>>({
@@ -31,7 +33,7 @@ export const FTFModule: React.FC<FTFModuleProps> = ({ school }) => {
     setFtfData(getFTF(school.emisCode));
   }, [school.emisCode]);
 
-  const canEdit = isAEO || (currentUser?.role === 'school_user' && currentUser.schoolEmisCode === school.emisCode);
+  const canEdit = isDyDEO || isAEO || (currentUser?.role === 'school_user' && currentUser.schoolEmisCode === school.emisCode);
 
   const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,19 +70,15 @@ export const FTFModule: React.FC<FTFModuleProps> = ({ school }) => {
     setTimeout(() => setSavedNotice(false), 3000);
   };
 
-  const handleDeleteTransaction = (id: string) => {
-    if (!currentUser || !canEdit) return;
-    const confirmDelete = window.confirm(
-      isUrdu ? 'کیا آپ اس اندراج کو حذف کرنا چاہتے ہیں؟' : 'Delete this FTF transaction?'
-    );
-    if (!confirmDelete) return;
-
+  const handleExecuteDeleteTx = () => {
+    if (!deleteTxId || !currentUser || !canEdit) return;
     const updated = {
       ...ftfData,
-      transactions: ftfData.transactions.filter(t => t.id !== id)
+      transactions: ftfData.transactions.filter(t => t.id !== deleteTxId)
     };
     saveFTF(updated, currentUser);
     setFtfData(getFTF(school.emisCode));
+    setDeleteTxId(null);
   };
 
   return (
@@ -327,8 +325,8 @@ export const FTFModule: React.FC<FTFModuleProps> = ({ school }) => {
                       <td className="py-2.5 px-4 text-right">
                         <button
                           type="button"
-                          onClick={() => handleDeleteTransaction(tx.id)}
-                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                          onClick={() => setDeleteTxId(tx.id)}
+                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
                           title="Delete Entry"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -342,6 +340,20 @@ export const FTFModule: React.FC<FTFModuleProps> = ({ school }) => {
           </table>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={deleteTxId !== null}
+        title={isUrdu ? 'اندراج حذف کریں' : 'Delete FTF Transaction'}
+        message={
+          isUrdu
+            ? 'کیا آپ واقعی فروغِ تعلیم فنڈ کے اس اندراج کو رجسٹر سے حذف کرنا چاہتے ہیں؟'
+            : 'Are you sure you want to delete this FTF collection/expense record from the register?'
+        }
+        confirmText={isUrdu ? 'حذف کریں' : 'Delete Entry'}
+        cancelText={isUrdu ? 'منسوخ کریں' : 'Cancel'}
+        onConfirm={handleExecuteDeleteTx}
+        onCancel={() => setDeleteTxId(null)}
+      />
     </div>
   );
 };

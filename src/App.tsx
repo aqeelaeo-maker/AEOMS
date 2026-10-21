@@ -21,7 +21,7 @@ import { AuditTrailView } from './components/audit/AuditTrailView';
 import { AeoCredentialsManager } from './components/auth/AeoCredentialsManager';
 import { SchoolCredentialsManager } from './components/auth/SchoolCredentialsManager';
 import { CredentialsManagementHub } from './components/auth/CredentialsManagementHub';
-import { DualPunjabLogos } from './components/common/OfficialLogos';
+import { SchoolEducationDeptLogo } from './components/common/OfficialLogos';
 import { getSchools, getSubmissions, getSchoolByEmis } from './services/storage';
 import { School as SchoolIcon, ArrowLeft, ChevronDown, Eye, CheckCircle2 } from 'lucide-react';
 
@@ -222,11 +222,11 @@ const MainLayout: React.FC = () => {
             )}
           </main>
 
-          {/* Official Footer with Dual Logos */}
+          {/* Official Footer with School Education Department Logo */}
           <footer className="bg-white border-t border-slate-200 py-3.5 px-6 text-xs text-slate-500 shrink-0">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <DualPunjabLogos size="xs" spacing="gap-1.5" />
+                <SchoolEducationDeptLogo size="xs" />
                 <span className="font-semibold text-slate-700">
                   {isUrdu
                     ? 'حکومت پنجاب · محکمہ سکول ایجوکیشن · دفتر ڈپٹی ڈسٹرکٹ ایجوکیشن آفیسر (Dy. DEO)'

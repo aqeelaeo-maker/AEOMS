@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getNSB, saveNSB } from '../../services/storage';
 import { Coins, Plus, Trash2, Save, Check, Receipt, Building, ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 interface NSBModuleProps {
   school: School;
@@ -21,12 +22,13 @@ const NSB_HEADS: NSBHead[] = [
 ];
 
 export const NSBModule: React.FC<NSBModuleProps> = ({ school }) => {
-  const { isAEO, isSupervisor, currentUser } = useAuth();
+  const { isDyDEO, isAEO, isSupervisor, currentUser } = useAuth();
   const { t, isUrdu } = useLanguage();
 
   const [nsbData, setNsbData] = useState<NSBData>(() => getNSB(school.emisCode));
   const [showAddTx, setShowAddTx] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
+  const [deleteTxId, setDeleteTxId] = useState<string | null>(null);
 
   // New Transaction Form State
   const [newTx, setNewTx] = useState<Partial<NSBTransaction>>({
@@ -44,7 +46,7 @@ export const NSBModule: React.FC<NSBModuleProps> = ({ school }) => {
     setNsbData(data);
   }, [school.emisCode]);
 
-  const canEdit = isAEO || (currentUser?.role === 'school_user' && currentUser.schoolEmisCode === school.emisCode);
+  const canEdit = isDyDEO || isAEO || (currentUser?.role === 'school_user' && currentUser.schoolEmisCode === school.emisCode);
 
   const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,19 +86,15 @@ export const NSBModule: React.FC<NSBModuleProps> = ({ school }) => {
     setTimeout(() => setSavedNotice(false), 3000);
   };
 
-  const handleDeleteTransaction = (txId: string) => {
-    if (!currentUser || !canEdit) return;
-    const confirmDelete = window.confirm(
-      isUrdu ? 'کیا آپ اس واؤچر کو رجسٹر سے حذف کرنا چاہتے ہیں؟' : 'Are you sure you want to remove this voucher?'
-    );
-    if (!confirmDelete) return;
-
+  const handleExecuteDeleteTx = () => {
+    if (!deleteTxId || !currentUser || !canEdit) return;
     const updated = {
       ...nsbData,
-      transactions: nsbData.transactions.filter(t => t.id !== txId)
+      transactions: nsbData.transactions.filter(t => t.id !== deleteTxId)
     };
     saveNSB(updated, currentUser);
     setNsbData(getNSB(school.emisCode));
+    setDeleteTxId(null);
   };
 
   const handleUpdateAllocations = (e: React.FormEvent) => {
@@ -437,8 +435,8 @@ export const NSBModule: React.FC<NSBModuleProps> = ({ school }) => {
                       <td className="py-2.5 px-4 text-right">
                         <button
                           type="button"
-                          onClick={() => handleDeleteTransaction(tx.id)}
-                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                          onClick={() => setDeleteTxId(tx.id)}
+                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
                           title="Delete Voucher"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -452,6 +450,20 @@ export const NSBModule: React.FC<NSBModuleProps> = ({ school }) => {
           </table>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={deleteTxId !== null}
+        title={isUrdu ? 'واؤچر حذف کریں' : 'Delete NSB Voucher'}
+        message={
+          isUrdu
+            ? 'کیا آپ واقعی اس واؤچر کو رجسٹر سے مستقل طور پر حذف کرنا چاہتے ہیں؟'
+            : 'Are you sure you want to permanently remove this NSB expenditure voucher from the register?'
+        }
+        confirmText={isUrdu ? 'حذف کریں' : 'Delete Voucher'}
+        cancelText={isUrdu ? 'منسوخ کریں' : 'Cancel'}
+        onConfirm={handleExecuteDeleteTx}
+        onCancel={() => setDeleteTxId(null)}
+      />
     </div>
   );
 };

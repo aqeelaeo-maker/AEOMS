@@ -4,7 +4,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { AeoCredentialsManager } from './AeoCredentialsManager';
 import { SchoolCredentialsManager } from './SchoolCredentialsManager';
 import { KeyRound, Shield, School, Users } from 'lucide-react';
-import { PunjabGovLogo, SchoolEducationDeptLogo } from '../common/OfficialLogos';
+import { SchoolEducationDeptLogo } from '../common/OfficialLogos';
 
 export const CredentialsManagementHub: React.FC = () => {
   const { isDyDEO, isAEO } = useAuth();
@@ -38,11 +38,10 @@ export const CredentialsManagementHub: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Official Header Banner with Dual Logos for Credentials */}
+      {/* Official Header Banner with School Education Department Logo */}
       <div className="bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 rounded-2xl p-6 text-white shadow-md border border-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 shrink-0 bg-white/10 p-1.5 rounded-2xl backdrop-blur-xs border border-white/20">
-            <PunjabGovLogo size="md" />
+          <div className="flex items-center shrink-0 bg-white/10 p-1.5 rounded-2xl backdrop-blur-xs border border-white/20">
             <SchoolEducationDeptLogo size="md" />
           </div>
           <div>

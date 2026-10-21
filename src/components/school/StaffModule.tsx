@@ -4,18 +4,20 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getStaff, saveStaff } from '../../services/storage';
 import { GraduationCap, Plus, Trash2, Save, Check, UserCheck, AlertCircle, Phone, Briefcase } from 'lucide-react';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 interface StaffModuleProps {
   school: School;
 }
 
 export const StaffModule: React.FC<StaffModuleProps> = ({ school }) => {
-  const { isAEO, currentUser } = useAuth();
+  const { isDyDEO, isAEO, currentUser } = useAuth();
   const { t, isUrdu } = useLanguage();
 
   const [staffData, setStaffData] = useState<StaffSummaryData>(() => getStaff(school.emisCode));
   const [showAddTeacher, setShowAddTeacher] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
+  const [deleteTeacherId, setDeleteTeacherId] = useState<string | null>(null);
 
   // New Teacher form
   const [newTeacher, setNewTeacher] = useState<Partial<TeacherStaff>>({
@@ -38,7 +40,7 @@ export const StaffModule: React.FC<StaffModuleProps> = ({ school }) => {
     setStaffData(getStaff(school.emisCode));
   }, [school.emisCode]);
 
-  const canEdit = isAEO || (currentUser?.role === 'school_user' && currentUser.schoolEmisCode === school.emisCode);
+  const canEdit = isDyDEO || isAEO || (currentUser?.role === 'school_user' && currentUser.schoolEmisCode === school.emisCode);
 
   const handleAddTeacher = (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,19 +91,15 @@ export const StaffModule: React.FC<StaffModuleProps> = ({ school }) => {
     setTimeout(() => setSavedNotice(false), 3000);
   };
 
-  const handleDeleteTeacher = (id: string) => {
-    if (!currentUser || !canEdit) return;
-    const confirmDelete = window.confirm(
-      isUrdu ? 'کیا آپ اس استاد/ملازم کا نام فہرست سے نکالنا چاہتے ہیں؟' : 'Remove this staff member from school roster?'
-    );
-    if (!confirmDelete) return;
-
+  const handleExecuteDeleteTeacher = () => {
+    if (!deleteTeacherId || !currentUser || !canEdit) return;
     const updated = {
       ...staffData,
-      teachers: staffData.teachers.filter(t => t.id !== id)
+      teachers: staffData.teachers.filter(t => t.id !== deleteTeacherId)
     };
     saveStaff(updated, currentUser);
     setStaffData(getStaff(school.emisCode));
+    setDeleteTeacherId(null);
   };
 
   const handleUpdateSanctioned = (e: React.FormEvent) => {
@@ -425,8 +423,8 @@ export const StaffModule: React.FC<StaffModuleProps> = ({ school }) => {
                       <td className="py-2.5 px-4 text-right">
                         <button
                           type="button"
-                          onClick={() => handleDeleteTeacher(teacher.id)}
-                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                          onClick={() => setDeleteTeacherId(teacher.id)}
+                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
                           title="Remove Teacher"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -440,6 +438,20 @@ export const StaffModule: React.FC<StaffModuleProps> = ({ school }) => {
           </table>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={deleteTeacherId !== null}
+        title={isUrdu ? 'ملازم کا نام فہرست سے نکالیں' : 'Remove Staff Member'}
+        message={
+          isUrdu
+            ? 'کیا آپ واقعی اس استاد/ملازم کا نام سکول روسٹر سے نکالنا چاہتے ہیں؟'
+            : 'Are you sure you want to remove this staff member from the school roster?'
+        }
+        confirmText={isUrdu ? 'نکالیں' : 'Remove Staff'}
+        cancelText={isUrdu ? 'منسوخ کریں' : 'Cancel'}
+        onConfirm={handleExecuteDeleteTeacher}
+        onCancel={() => setDeleteTeacherId(null)}
+      />
     </div>
   );
 };

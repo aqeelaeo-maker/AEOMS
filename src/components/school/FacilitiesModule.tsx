@@ -22,7 +22,7 @@ interface FacilitiesModuleProps {
 }
 
 export const FacilitiesModule: React.FC<FacilitiesModuleProps> = ({ school }) => {
-  const { isAEO, currentUser } = useAuth();
+  const { isDyDEO, isAEO, currentUser } = useAuth();
   const { t, isUrdu } = useLanguage();
 
   const [facilities, setFacilities] = useState<BuildingAndFacilitiesData>(() => {
@@ -34,7 +34,7 @@ export const FacilitiesModule: React.FC<FacilitiesModuleProps> = ({ school }) =>
     setFacilities(getFacilities(school.emisCode));
   }, [school.emisCode]);
 
-  const canEdit = isAEO || (currentUser?.role === 'school_user' && currentUser.schoolEmisCode === school.emisCode);
+  const canEdit = isDyDEO || isAEO || (currentUser?.role === 'school_user' && currentUser.schoolEmisCode === school.emisCode);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

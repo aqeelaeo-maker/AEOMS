@@ -27,7 +27,7 @@ import {
   Building,
   X
 } from 'lucide-react';
-import { DualPunjabLogos, PunjabGovLogo, SchoolEducationDeptLogo } from '../common/OfficialLogos';
+import { SchoolEducationDeptLogo } from '../common/OfficialLogos';
 
 export const SchoolCredentialsManager: React.FC = () => {
   const { isDyDEO, isAEO, currentUser, allowedSchools } = useAuth();
@@ -464,7 +464,7 @@ export const SchoolCredentialsManager: React.FC = () => {
           <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden p-6">
             <div className="border-b pb-4 mb-4">
               <div className="flex items-center justify-between gap-3 mb-2">
-                <PunjabGovLogo size="sm" />
+                <SchoolEducationDeptLogo size="sm" />
                 <div className="text-center flex-1">
                   <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
                     GOVERNMENT OF THE PUNJAB · SCHOOL EDUCATION DEPARTMENT

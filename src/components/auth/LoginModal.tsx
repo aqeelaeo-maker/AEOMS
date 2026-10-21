@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Building2, Shield, UserCheck, KeyRound, LogIn, School as SchoolIcon, Eye, EyeOff } from 'lucide-react';
 import { getSchools } from '../../services/storage';
-import { DualPunjabLogos } from '../common/OfficialLogos';
+import { SchoolEducationDeptLogo } from '../common/OfficialLogos';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -51,7 +51,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         <div className="bg-emerald-950 text-white p-5 border-b border-emerald-900">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <DualPunjabLogos size="sm" />
+              <SchoolEducationDeptLogo size="sm" />
               <div>
                 <h3 className="text-base font-semibold tracking-tight">
                   {isUrdu ? 'سرکاری لاگ ان پورٹل' : 'Official Portal Sign In'}

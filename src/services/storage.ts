@@ -230,6 +230,10 @@ export function saveSchool(school: School, user: UserAccount): void {
     school.emisCode,
     school.name
   );
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('schools_updated', { detail: { school } }));
+  }
 }
 
 export function deleteSchool(emisCode: string, user: UserAccount): boolean {
@@ -257,6 +261,10 @@ export function deleteSchool(emisCode: string, user: UserAccount): boolean {
 
   deleteFromFirestore('schools', emisCode);
   deleteFromFirestore('users', 'user_' + emisCode);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('schools_updated', { detail: { emisCode } }));
+  }
 
   return true;
 }
@@ -447,6 +455,10 @@ export async function saveAeoAccount(
     `Dy. DEO ${isNew ? 'issued new' : 'updated'} official login credentials for AEO ${updatedAeo.displayName} (CNIC: ${updatedAeo.cnic}, Markaz: ${updatedAeo.assignedMarkaz}).`
   );
 
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('aeo_updated', { detail: { aeo: updatedAeo } }));
+  }
+
   return { success: true, aeo: updatedAeo };
 }
 
@@ -484,6 +496,10 @@ export async function resetAeoPasswordToDefaultCnic(
     `Dy. DEO reset password for AEO ${aeo.displayName} to default CNIC (${defaultPassword}).`
   );
 
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('aeo_updated', { detail: { aeoId } }));
+  }
+
   return { success: true };
 }
 
@@ -519,6 +535,10 @@ export async function deleteAeoAccount(
     'AEO Credentials Management',
     `Dy. DEO deleted AEO account credentials for ${target.displayName} (Username: ${target.username}, Markaz: ${target.assignedMarkaz}).`
   );
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('aeo_updated', { detail: { aeoId } }));
+  }
 
   return { success: true };
 }

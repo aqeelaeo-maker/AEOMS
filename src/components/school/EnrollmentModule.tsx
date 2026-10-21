@@ -10,7 +10,7 @@ interface EnrollmentModuleProps {
 }
 
 export const EnrollmentModule: React.FC<EnrollmentModuleProps> = ({ school }) => {
-  const { isAEO, isSupervisor, currentUser } = useAuth();
+  const { isDyDEO, isAEO, isSupervisor, currentUser } = useAuth();
   const { t, isUrdu } = useLanguage();
 
   const [enrollment, setEnrollment] = useState<EnrollmentData>(() => {
@@ -41,7 +41,7 @@ export const EnrollmentModule: React.FC<EnrollmentModuleProps> = ({ school }) =>
     if (data) setEnrollment(data);
   }, [school.emisCode]);
 
-  const canEdit = isAEO || (currentUser?.role === 'school_user' && currentUser.schoolEmisCode === school.emisCode);
+  const canEdit = isDyDEO || isAEO || (currentUser?.role === 'school_user' && currentUser.schoolEmisCode === school.emisCode);
 
   const handleGradeChange = (index: number, field: 'boys' | 'girls', value: number) => {
     const updatedGrades = [...enrollment.grades];

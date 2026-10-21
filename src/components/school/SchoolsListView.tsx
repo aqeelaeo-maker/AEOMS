@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { School, SchoolCategory, SchoolLevel, GenderPolicy } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -13,6 +13,7 @@ import {
   getFacilities,
   getSubmissions
 } from '../../services/storage';
+import { ConfirmModal } from '../common/ConfirmModal';
 import {
   School as SchoolIcon,
   Plus,
@@ -43,11 +44,17 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({ onInspectSchoo
   const [schools, setSchools] = useState<School[]>(() => getSchoolsForUser(currentUser));
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [markazFilter, setMarkazFilter] = useState<string>('all');
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
+
+  // In-app Confirmation Modals (Replaces window.confirm for reliable iframe operation)
+  const [deleteTarget, setDeleteTarget] = useState<{ emis: string; name: string } | null>(null);
+  const [resetTarget, setResetTarget] = useState<{ emis: string; name: string } | null>(null);
 
   // Modal State for Add / Edit
   const [modalOpen, setModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [modalForm, setModalForm] = useState<School>({
     emisCode: '',
     name: '',
@@ -73,8 +80,20 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({ onInspectSchoo
     setSchools(getSchoolsForUser(currentUser));
   };
 
+  // React to currentUser changes or schools_updated custom events
+  useEffect(() => {
+    refreshSchools();
+
+    const handleUpdate = () => {
+      refreshSchools();
+    };
+    window.addEventListener('schools_updated', handleUpdate);
+    return () => window.removeEventListener('schools_updated', handleUpdate);
+  }, [currentUser]);
+
   const handleOpenAdd = () => {
     setIsEditing(false);
+    setModalError(null);
     setModalForm({
       emisCode: '',
       name: '',
@@ -100,72 +119,73 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({ onInspectSchoo
 
   const handleOpenEdit = (school: School) => {
     setIsEditing(true);
+    setModalError(null);
     setModalForm({ ...school });
     setModalOpen(true);
   };
 
   const canManageSchool = isAEO || isDyDEO;
 
-  const handleDelete = (emisCode: string, schoolName: string) => {
-    if (!currentUser || !canManageSchool) return;
-    const confirmDelete = window.confirm(
-      isUrdu
-        ? `کیا آپ واقعی اس سکول "${schoolName}" (EMIS: ${emisCode}) کو حذف کرنا چاہتے ہیں؟ اس سے منسلک صارف اکاؤنٹ بھی ختم ہو جائے گا۔`
-        : `Are you sure you want to delete "${schoolName}" (EMIS: ${emisCode})? This will also remove the school's account credentials.`
-    );
-    if (!confirmDelete) return;
-
-    deleteSchool(emisCode, currentUser);
+  // Non-blocking Delete School handler
+  const handleConfirmDelete = () => {
+    if (!deleteTarget || !currentUser || !canManageSchool) return;
+    deleteSchool(deleteTarget.emis, currentUser);
     refreshSchools();
-    setStatusNotice(isUrdu ? `سکول "${schoolName}" کو حذف کر دیا گیا۔` : `School "${schoolName}" was deleted.`);
+    setStatusNotice(isUrdu ? `سکول "${deleteTarget.name}" کو حذف کر دیا گیا۔` : `School "${deleteTarget.name}" was deleted successfully.`);
+    setDeleteTarget(null);
     setTimeout(() => setStatusNotice(null), 3500);
   };
 
-  const handleResetPassword = async (emisCode: string, schoolName: string) => {
-    if (!currentUser || !canManageSchool) return;
-    const confirmReset = window.confirm(
-      isUrdu
-        ? `اس سکول (${schoolName}) کا پاس ورڈ واپس ابتدائی عارضی EMIS کوڈ (${emisCode}) پر ری سیٹ کریں؟`
-        : `Reset password for ${schoolName} to initial default EMIS code (${emisCode})?`
-    );
-    if (!confirmReset) return;
-
-    await resetSchoolPasswordToDefault(emisCode, currentUser);
+  // Non-blocking Password Reset handler
+  const handleConfirmReset = async () => {
+    if (!resetTarget || !currentUser || !canManageSchool) return;
+    await resetSchoolPasswordToDefault(resetTarget.emis, currentUser);
     setStatusNotice(
       isUrdu
-        ? `پاس ورڈ ری سیٹ ہو گیا۔ ابتدائی پاس ورڈ اب ${emisCode} ہے۔`
-        : `Password reset successfully. Initial temporary password is now ${emisCode}.`
+        ? `پاس ورڈ ری سیٹ ہو گیا۔ ابتدائی پاس ورڈ اب ${resetTarget.emis} ہے۔`
+        : `Password reset successfully. Initial temporary password is now ${resetTarget.emis}.`
     );
+    setResetTarget(null);
     setTimeout(() => setStatusNotice(null), 3500);
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
+    setModalError(null);
 
     const trimmedEmis = modalForm.emisCode.trim();
     if (!trimmedEmis) {
-      alert('EMIS code is required');
+      setModalError(isUrdu ? 'براہ کرم ای ایم آئی ایس کوڈ درج کریں۔' : 'EMIS code is required');
       return;
     }
 
     if (!isEditing) {
       // Check for duplicate EMIS
-      if (schools.some(s => s.emisCode === trimmedEmis)) {
-        alert(isUrdu ? 'یہ ای ایم آئی ایس کوڈ پہلے سے موجود ہے!' : 'This EMIS code already exists!');
+      const allExisting = getSchools();
+      if (allExisting.some(s => s.emisCode === trimmedEmis)) {
+        setModalError(isUrdu ? 'یہ ای ایم آئی ایس کوڈ پہلے سے موجود ہے!' : `EMIS code "${trimmedEmis}" already exists in records!`);
         return;
       }
+    }
+
+    if (!modalForm.name.trim()) {
+      setModalError(isUrdu ? 'سکول کا نام درکار ہے۔' : 'School name is required');
+      return;
     }
 
     const toSave: School = {
       ...modalForm,
       emisCode: trimmedEmis,
-      name: modalForm.name.trim()
+      name: modalForm.name.trim(),
+      // If AEO is saving and has assignedMarkaz, lock to assignedMarkaz
+      markaz: isAEO && currentUser.assignedMarkaz ? currentUser.assignedMarkaz : modalForm.markaz
     };
 
     saveSchool(toSave, currentUser);
     refreshSchools();
     setModalOpen(false);
+    setModalError(null);
     setStatusNotice(
       isEditing
         ? (isUrdu ? `سکول "${toSave.name}" کی معلومات اپ ڈیٹ ہو گئیں!` : `School "${toSave.name}" updated successfully!`)

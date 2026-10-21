@@ -18,7 +18,7 @@ import {
   FileText
 } from 'lucide-react';
 import { LoginModal } from '../auth/LoginModal';
-import { DualPunjabLogos } from '../common/OfficialLogos';
+import { SchoolEducationDeptLogo } from '../common/OfficialLogos';
 
 interface NavbarProps {
   activeTab: string;
@@ -154,7 +154,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => setActiveTab(isDyDEO ? 'credentials' : 'schools')}
                 className="flex items-center gap-3 text-left group"
               >
-                <DualPunjabLogos size="md" spacing="gap-2" />
+                <SchoolEducationDeptLogo size="md" />
                 <div>
                   <div className="flex items-center gap-2">
                     <h1 className="text-sm sm:text-base font-extrabold text-white tracking-tight leading-snug group-hover:text-emerald-200 transition-colors">
