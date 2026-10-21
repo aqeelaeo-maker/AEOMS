@@ -20,6 +20,8 @@ import { OfficialDossierPrint } from './components/reports/OfficialDossierPrint'
 import { AuditTrailView } from './components/audit/AuditTrailView';
 import { AeoCredentialsManager } from './components/auth/AeoCredentialsManager';
 import { SchoolCredentialsManager } from './components/auth/SchoolCredentialsManager';
+import { CredentialsManagementHub } from './components/auth/CredentialsManagementHub';
+import { DualPunjabLogos } from './components/common/OfficialLogos';
 import { getSchools, getSubmissions, getSchoolByEmis } from './services/storage';
 import { School as SchoolIcon, ArrowLeft, ChevronDown, Eye, CheckCircle2 } from 'lucide-react';
 
@@ -38,7 +40,7 @@ const MainLayout: React.FC = () => {
   const { t, isUrdu } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<string>(() => {
-    return isSchoolUser ? 'profile' : 'dashboard';
+    return isDyDEO ? 'credentials' : 'schools';
   });
 
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
@@ -54,9 +56,9 @@ const MainLayout: React.FC = () => {
   // If school user, ALWAYS their assigned school. If AEO, their markaz schools.
   const activeSchool = currentSchool || (schools.length > 0 ? schools[0] : null);
 
-  const handleSelectSchoolFromDashboard = (emisCode: string, targetTab: string = 'profile') => {
+  const handleSelectSchoolFromDashboard = (emisCode: string, targetTab: string = 'enrollment') => {
     setSelectedSchoolEmis(emisCode);
-    setActiveTab(targetTab);
+    setActiveTab(targetTab === 'profile' ? 'enrollment' : targetTab);
   };
 
   const handleOpenPrintDossier = (emisCode?: string) => {
@@ -69,14 +71,12 @@ const MainLayout: React.FC = () => {
   const printSchool = printDossierSchoolEmis ? getSchoolByEmis(printDossierSchoolEmis) || null : null;
 
   const isSchoolModule = [
-    'profile',
+    'schools',
     'enrollment',
     'nsb',
     'ftf',
     'facilities',
-    'staff',
-    'documents',
-    'submission'
+    'staff'
   ].includes(activeTab);
 
   return (
@@ -160,103 +160,81 @@ const MainLayout: React.FC = () => {
             </div>
           )}
 
-          {/* Module Views */}
+          {/* Module Views (7 Official Tabs) */}
           <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-            {/* Dashboard View */}
-            {activeTab === 'dashboard' && (
-              <AeoDashboard
-                onSelectSchool={handleSelectSchoolFromDashboard}
-                onOpenSubmissionReview={(subId) => {
-                  const sub = submissions.find(s => s.id === subId);
-                  if (sub) {
-                    setSelectedSchoolEmis(sub.schoolEmisCode);
-                    setActiveTab('submission');
-                  }
-                }}
-              />
+            {/* 1. Credentials Hub (Dy. DEO full CRUD over AEOs and School credentials; AEO manages Markaz schools) */}
+            {(activeTab === 'credentials' || activeTab === 'aeo_credentials' || activeTab === 'school_credentials') && (
+              <CredentialsManagementHub />
             )}
 
-            {/* Schools Management List View (Add, Edit, Delete, Inspect) */}
+            {/* 2. Schools Information (Schools Management List, Add, Edit, Delete, Inspect) */}
             {activeTab === 'schools' && (
               <SchoolsListView
                 onInspectSchool={handleSelectSchoolFromDashboard}
               />
             )}
 
-            {/* School Profile View */}
-            {activeTab === 'profile' && activeSchool && (
-              <SchoolProfileView school={activeSchool} />
-            )}
-
-            {/* Enrollment and Attendance View */}
+            {/* 3. Enrollment and Attendance View */}
             {activeTab === 'enrollment' && activeSchool && (
               <EnrollmentModule school={activeSchool} />
             )}
 
-            {/* NSB Funds and Expenditure View */}
+            {/* 4. NSB Funds and Expenditure View */}
             {activeTab === 'nsb' && activeSchool && (
               <NSBModule school={activeSchool} />
             )}
 
-            {/* FTF Collections and registers View */}
+            {/* 5. FTF Collection and Expenditures View */}
             {activeTab === 'ftf' && activeSchool && (
               <FTFModule school={activeSchool} />
             )}
 
-            {/* Building and Facilities View */}
+            {/* 6. Building and Facilities View */}
             {activeTab === 'facilities' && activeSchool && (
               <FacilitiesModule school={activeSchool} />
             )}
 
-            {/* Teachers & Staff View */}
+            {/* 7. Staff Information View */}
             {activeTab === 'staff' && activeSchool && (
               <StaffModule school={activeSchool} />
             )}
 
-            {/* Evidence & Documents View */}
-            {activeTab === 'documents' && activeSchool && (
-              <DocumentsModule school={activeSchool} />
+            {/* Fallbacks for any legacy / direct navigations */}
+            {activeTab === 'profile' && activeSchool && (
+              <SchoolProfileView school={activeSchool} />
             )}
-
-            {/* Submissions & Verification View */}
             {activeTab === 'submission' && activeSchool && (
               <SubmissionWorkflow
                 school={activeSchool}
                 onOpenOfficialPrint={() => handleOpenPrintDossier(activeSchool.emisCode)}
               />
             )}
-
-            {/* Reports & Exports View */}
             {activeTab === 'reports' && (
               <ReportsHub onOpenDossierPrint={handleOpenPrintDossier} />
             )}
-
-            {/* AEO Credentials Management (Dy. DEO exclusive) */}
-            {activeTab === 'aeo_credentials' && isDyDEO && (
-              <AeoCredentialsManager />
-            )}
-
-            {/* School Credentials Management (AEO & Dy. DEO) */}
-            {activeTab === 'school_credentials' && (isAEO || isDyDEO) && (
-              <SchoolCredentialsManager />
-            )}
-
-            {/* System Audit Logs View */}
-            {activeTab === 'audit' && (isAEO || isSupervisor || isDyDEO) && (
+            {activeTab === 'audit' && (
               <AuditTrailView />
+            )}
+            {activeTab === 'dashboard' && (
+              <SchoolsListView
+                onInspectSchool={handleSelectSchoolFromDashboard}
+              />
             )}
           </main>
 
-          {/* Official Footer */}
+          {/* Official Footer with Dual Logos */}
           <footer className="bg-white border-t border-slate-200 py-3.5 px-6 text-xs text-slate-500 shrink-0">
-            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-              <div>
-                {isUrdu
-                  ? 'معاون تعلیمی افسر (AEO) سکول ڈیٹا مینجمنٹ سسٹم · حکومت پنجاب'
-                  : 'Assistant Education Officer (AEO) School Data Management System · Govt. of the Punjab'}
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <DualPunjabLogos size="xs" spacing="gap-1.5" />
+                <span className="font-semibold text-slate-700">
+                  {isUrdu
+                    ? 'حکومت پنجاب · محکمہ سکول ایجوکیشن · دفتر ڈپٹی ڈسٹرکٹ ایجوکیشن آفیسر (Dy. DEO)'
+                    : 'Govt. of the Punjab · School Education Dept · Office of Deputy District Education Officer (Dy. DEO)'}
+                </span>
               </div>
-              <div className="text-[11px] font-mono text-slate-400">
-                Markaz Pindi Gheb · District Attock · Academic Year 2026-27
+              <div className="text-[11px] font-mono text-slate-500">
+                Tehsil Pindi Gheb · District Attock · Session 2026-27
               </div>
             </div>
           </footer>

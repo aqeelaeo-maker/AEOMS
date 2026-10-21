@@ -1,40 +1,25 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { getSchools } from '../../services/storage';
 import {
-  LayoutDashboard,
   School,
   Users,
   Coins,
   Receipt,
   Building2,
   GraduationCap,
-  FileCheck,
-  SendHorizontal,
-  FileSpreadsheet,
-  History,
-  Shield,
-  CheckCircle2,
-  Clock,
-  RotateCcw,
-  ChevronDown,
-  X,
-  FileText,
-  KeyRound
+  KeyRound,
+  X
 } from 'lucide-react';
+import { DualPunjabLogos } from '../common/OfficialLogos';
 
 interface NavTab {
   id: string;
+  number: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   roles: string[];
   badge?: number | string;
-}
-
-interface NavGroup {
-  groupTitle: string;
-  tabs: NavTab[];
 }
 
 interface SidebarProps {
@@ -49,132 +34,81 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   setActiveTab,
-  pendingReviewsCount = 0,
   isOpenMobile = false,
   onCloseMobile
 }) => {
   const {
     currentUser,
-    currentSchool,
     isDyDEO,
     isAEO,
-    isSupervisor,
-    isSchoolUser,
-    selectedSchoolEmis,
-    setSelectedSchoolEmis
+    isSupervisor
   } = useAuth();
-  const { t, isUrdu } = useLanguage();
+  const { isUrdu } = useLanguage();
 
   const currentRole = currentUser?.role || (currentUser?.email === 'dydeowpindigheb@gmail.com' ? 'dy_deo' : 'aeo_admin');
 
-  // Primary Sections for the Left Pane with Tabs
-  const navigationGroups: NavGroup[] = [
+  // ONLY the specified tabs for Deputy District Education Officer & Authorized Officers:
+  // 1. Credentials
+  // 2. Schools Information
+  // 3. Enrollment
+  // 4. NSB Funds and Expenditures
+  // 5. FTF Collection and Expenditures
+  // 6. Building and Facilities
+  // 7. Staff Information
+  // All remaining tabs removed from left pan.
+  const officialTabs: NavTab[] = [
     {
-      groupTitle: isUrdu ? 'مرکزی جائزہ و فہرست' : 'Central Monitoring',
-      tabs: [
-        {
-          id: 'dashboard',
-          label: isUrdu ? 'ڈیش بورڈ' : 'Dashboard',
-          icon: LayoutDashboard,
-          roles: ['dy_deo', 'aeo_admin', 'supervisor']
-        },
-        {
-          id: 'schools',
-          label: isUrdu ? 'سکولز' : 'Schools',
-          icon: School,
-          roles: ['dy_deo', 'aeo_admin', 'supervisor']
-        }
-      ]
+      id: 'credentials',
+      number: '1',
+      label: isUrdu ? 'سرکاری اسناد و پاس ورڈز' : 'Credentials',
+      icon: KeyRound,
+      roles: ['dy_deo', 'aeo_admin']
     },
     {
-      groupTitle: isUrdu ? 'سرکاری لاگ ان و اسناد' : 'Credentials & Accounts',
-      tabs: [
-        {
-          id: 'aeo_credentials',
-          label: isUrdu ? 'اے ای اوز اسناد مینجمنٹ' : 'AEO Credentials',
-          icon: KeyRound,
-          roles: ['dy_deo']
-        },
-        {
-          id: 'school_credentials',
-          label: isUrdu ? 'سکول اسناد و پاس ورڈ' : 'School Credentials',
-          icon: KeyRound,
-          roles: ['aeo_admin', 'dy_deo']
-        }
-      ]
+      id: 'schools',
+      number: '2',
+      label: isUrdu ? 'سکولز کی معلومات' : 'Schools Information',
+      icon: School,
+      roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
     },
     {
-      groupTitle: isUrdu ? 'سکول ڈیٹا ماڈیولز (School-Wise)' : 'School Data Modules',
-      tabs: [
-        {
-          id: 'profile',
-          label: isUrdu ? 'سکول پروفائل' : 'School Profile',
-          icon: FileText,
-          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
-        },
-        {
-          id: 'enrollment',
-          label: isUrdu ? 'داخلہ اور حاضری' : 'Enrollment and Attendance',
-          icon: Users,
-          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
-        },
-        {
-          id: 'nsb',
-          label: isUrdu ? 'نان سیلری بجٹ و اخراجات' : 'NSB Funds and Expenditure',
-          icon: Coins,
-          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
-        },
-        {
-          id: 'ftf',
-          label: isUrdu ? 'فروغِ تعلیم فنڈ رجسٹر' : 'FTF Collections and registers',
-          icon: Receipt,
-          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
-        },
-        {
-          id: 'facilities',
-          label: isUrdu ? 'عمارات اور سہولیات' : 'Building and Facilities',
-          icon: Building2,
-          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
-        },
-        {
-          id: 'staff',
-          label: isUrdu ? 'اساتذہ اور عملہ' : 'Teachers & Staff',
-          icon: GraduationCap,
-          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
-        },
-        {
-          id: 'documents',
-          label: isUrdu ? 'دستاویزات و بلز' : 'Document Evidence & Photos',
-          icon: FileCheck,
-          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
-        }
-      ]
+      id: 'enrollment',
+      number: '3',
+      label: isUrdu ? 'داخلہ اور حاضری' : 'Enrollment',
+      icon: Users,
+      roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
     },
     {
-      groupTitle: isUrdu ? 'توثیق و رپورٹس' : 'Verification & Reports',
-      tabs: [
-        {
-          id: 'submission',
-          label: isUrdu ? 'کوائف جمع و توثیق' : 'Submissions & Verification',
-          icon: SendHorizontal,
-          badge: pendingReviewsCount > 0 ? pendingReviewsCount : undefined,
-          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
-        },
-        {
-          id: 'reports',
-          label: isUrdu ? 'رپورٹس اور ایکسل برآمد' : 'Reports & Exports',
-          icon: FileSpreadsheet,
-          roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
-        },
-        {
-          id: 'audit',
-          label: isUrdu ? 'سسٹم آڈٹ ٹریل' : 'System Audit Logs',
-          icon: History,
-          roles: ['dy_deo', 'aeo_admin', 'supervisor']
-        }
-      ]
+      id: 'nsb',
+      number: '4',
+      label: isUrdu ? 'نان سیلری بجٹ و اخراجات' : 'NSB Funds and Expenditures',
+      icon: Coins,
+      roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
+    },
+    {
+      id: 'ftf',
+      number: '5',
+      label: isUrdu ? 'فروغِ تعلیم فنڈ و اخراجات' : 'FTF Collection and Expenditures',
+      icon: Receipt,
+      roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
+    },
+    {
+      id: 'facilities',
+      number: '6',
+      label: isUrdu ? 'عمارات اور سہولیات' : 'Building and Facilities',
+      icon: Building2,
+      roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
+    },
+    {
+      id: 'staff',
+      number: '7',
+      label: isUrdu ? 'اساتذہ و عملہ کی معلومات' : 'Staff Information',
+      icon: GraduationCap,
+      roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
     }
   ];
+
+  const visibleTabs = officialTabs.filter(tab => tab.roles.includes(currentRole));
 
   const handleTabClick = (tabId: string) => {
     setActiveTab(tabId);
@@ -199,19 +133,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isOpenMobile ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
-        {/* Left Pane Header */}
-        <div className="p-4 border-b border-emerald-900 bg-emerald-900/60 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold text-sm shadow-xs border border-emerald-500/40">
-              {isDyDEO ? 'DEO' : 'AEO'}
-            </div>
-            <div>
-              <div className="text-xs font-bold text-white tracking-tight leading-tight">
-                {isUrdu ? 'سکول ڈیٹا مینجمنٹ سسٹم' : 'School Record System'}
+        {/* Left Pane Header with Official Government of Punjab & SED Logos */}
+        <div className="p-3.5 border-b border-emerald-900 bg-emerald-900/60 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Official Dual Logos */}
+            <DualPunjabLogos size="sm" spacing="gap-1.5" />
+            <div className="min-w-0">
+              <div className="text-xs font-bold text-white tracking-tight leading-tight truncate">
+                {isUrdu ? 'محکمہ سکول ایجوکیشن' : 'School Education Dept'}
               </div>
-              <div className="text-[10px] text-emerald-300 font-medium">
+              <div className="text-[10px] text-emerald-300 font-medium truncate">
                 {isDyDEO
-                  ? (isUrdu ? 'دفتر ڈپٹی ڈی ای او پنڈی گھیب' : 'Dy. DEO · Tehsil Pindi Gheb')
+                  ? (isUrdu ? 'دفتر ڈپٹی ڈی ای او پنڈی گھیب' : 'Dy. DEO · Pindi Gheb')
                   : isAEO && currentUser?.assignedMarkaz
                   ? (isUrdu ? `مرکز: ${currentUser.assignedMarkaz}` : `Markaz: ${currentUser.assignedMarkaz}`)
                   : (isUrdu ? 'مرکز پنڈی گھیب · اٹک' : 'Markaz Pindi Gheb · Attock')}
@@ -228,61 +161,69 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Scrollable Navigation Items */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-4">
-          {navigationGroups.map((group, groupIdx) => {
-            const visibleGroupTabs = group.tabs.filter(tab => tab.roles.includes(currentRole));
-            if (visibleGroupTabs.length === 0) return null;
+        {/* Official Navigation Section Title */}
+        <div className="px-4 pt-4 pb-1 flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+            {isUrdu ? 'سرکاری ماڈیولز و اختیارات' : 'Official Modules'}
+          </span>
+          <span className="text-[10px] font-mono text-emerald-500 font-semibold">
+            {visibleTabs.length} Tabs
+          </span>
+        </div>
+
+        {/* Scrollable Navigation Items (Exact 7 Tabs, All others removed) */}
+        <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+          {visibleTabs.map((tab) => {
+            const Icon = tab.icon;
+            // Handle matching activeTab
+            const isActive =
+              activeTab === tab.id ||
+              (tab.id === 'credentials' && (activeTab === 'aeo_credentials' || activeTab === 'school_credentials'));
 
             return (
-              <div key={groupIdx}>
-                <div className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                  {group.groupTitle}
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => handleTabClick(tab.id)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 text-xs font-medium rounded-xl transition-all text-left group ${
+                  isActive
+                    ? 'bg-emerald-700 text-white font-bold shadow-sm border-l-4 border-amber-400 translate-x-0.5'
+                    : 'text-emerald-100 hover:text-white hover:bg-emerald-900/70'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span
+                    className={`w-5 h-5 rounded-md flex items-center justify-center text-[11px] font-mono font-bold shrink-0 ${
+                      isActive
+                        ? 'bg-amber-400 text-slate-950 shadow-xs'
+                        : 'bg-emerald-900/80 text-emerald-300 group-hover:bg-emerald-800 group-hover:text-white'
+                    }`}
+                  >
+                    {tab.number}
+                  </span>
+                  <Icon
+                    className={`w-4 h-4 shrink-0 transition-colors ${
+                      isActive ? 'text-amber-300' : 'text-emerald-300 group-hover:text-white'
+                    }`}
+                  />
+                  <span className="truncate">{tab.label}</span>
                 </div>
-                <div className="space-y-0.5">
-                  {visibleGroupTabs.map(tab => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
 
-                    return (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => handleTabClick(tab.id)}
-                        className={`w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors text-left group ${
-                          isActive
-                            ? 'bg-emerald-700 text-white font-bold shadow-xs border-l-4 border-amber-400'
-                            : 'text-emerald-100 hover:text-white hover:bg-emerald-900/70'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <Icon
-                            className={`w-4 h-4 shrink-0 transition-colors ${
-                              isActive ? 'text-amber-300' : 'text-emerald-300 group-hover:text-white'
-                            }`}
-                          />
-                          <span className="truncate">{tab.label}</span>
-                        </div>
-
-                        {tab.badge !== undefined && (
-                          <span
-                            className={`px-1.5 py-0.2 text-[10px] font-bold rounded-full shrink-0 ${
-                              isActive ? 'bg-amber-400 text-slate-950' : 'bg-rose-500 text-white'
-                            }`}
-                          >
-                            {tab.badge}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+                {tab.badge !== undefined && (
+                  <span
+                    className={`px-1.5 py-0.2 text-[10px] font-bold rounded-full shrink-0 ${
+                      isActive ? 'bg-amber-400 text-slate-950' : 'bg-rose-500 text-white'
+                    }`}
+                  >
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
             );
           })}
         </nav>
 
-        {/* Left Pane Footer with Green Palette */}
+        {/* Left Pane Footer with User Details */}
         <div className="p-3 border-t border-emerald-900 bg-emerald-900/40 text-xs">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
@@ -291,8 +232,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="font-semibold text-white text-[11px] truncate">
                   {currentUser?.displayName}
                 </div>
-                <div className="text-[10px] text-emerald-300 font-mono">
-                  {isAEO ? 'AEO Administrator' : isSupervisor ? 'Supervisor (Read-Only)' : `EMIS: ${currentUser?.username}`}
+                <div className="text-[10px] text-emerald-300 font-mono truncate">
+                  {isDyDEO ? (
+                    <span className="text-amber-300 font-bold">Dy. DEO (Super Admin)</span>
+                  ) : isAEO ? (
+                    'AEO Administrator'
+                  ) : isSupervisor ? (
+                    'Supervisor (Read-Only)'
+                  ) : (
+                    `EMIS: ${currentUser?.username}`
+                  )}
                 </div>
               </div>
             </div>

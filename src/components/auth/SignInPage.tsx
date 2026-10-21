@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Globe
 } from 'lucide-react';
+import { DualPunjabLogos, PunjabGovLogo, SchoolEducationDeptLogo } from '../common/OfficialLogos';
 
 export const SignInPage: React.FC = () => {
   const { login, demoLogin } = useAuth();
@@ -53,18 +54,16 @@ export const SignInPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-emerald-900 to-teal-950 flex flex-col justify-between font-sans text-slate-100 selection:bg-emerald-500 selection:text-white">
-      {/* Top Bar with Language Selector */}
-      <header className="w-full px-4 sm:px-8 py-4 flex items-center justify-between border-b border-emerald-800/60 bg-emerald-950/40 backdrop-blur-xs">
+      {/* Top Bar with Official Government Logos and Language Selector */}
+      <header className="w-full px-4 sm:px-8 py-3.5 flex items-center justify-between border-b border-emerald-800/60 bg-emerald-950/60 backdrop-blur-xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-700/80 border border-emerald-500/50 flex items-center justify-center text-white font-black text-sm shadow-md">
-            SED
-          </div>
+          <DualPunjabLogos size="md" spacing="gap-2" />
           <div>
             <div className="text-xs uppercase tracking-widest font-semibold text-emerald-300">
               {isUrdu ? 'حکومت پنجاب · سکول ایجوکیشن ڈیپارٹمنٹ' : 'Govt. of the Punjab · School Education Dept'}
             </div>
             <div className="text-sm font-bold text-white">
-              {isUrdu ? 'دفتر ڈپٹی ڈی ای او و اسسٹنٹ ایجوکیشن آفیسرز' : 'Office of Dy. DEO & Assistant Education Officers'}
+              {isUrdu ? 'دفتر ڈپٹی ڈسٹرکٹ ایجوکیشن آفیسر (Dy. DEO) و اے ای اوز' : 'Office of Dy. DEO & Assistant Education Officers'}
             </div>
           </div>
         </div>
@@ -245,8 +244,8 @@ export const SignInPage: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden text-slate-900">
             {/* Form Top Banner */}
             <div className="bg-emerald-900 p-6 text-white text-center border-b border-emerald-800">
-              <div className="w-12 h-12 bg-emerald-800/80 border border-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
-                <LogIn className="w-6 h-6 text-emerald-300" />
+              <div className="flex items-center justify-center gap-2.5 mx-auto mb-3">
+                <DualPunjabLogos size="md" />
               </div>
               <h2 className="text-xl font-bold tracking-tight">
                 {isUrdu ? 'سرکاری لاگ ان' : 'Sign In to Account'}

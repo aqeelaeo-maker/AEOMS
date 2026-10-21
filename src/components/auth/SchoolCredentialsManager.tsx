@@ -27,6 +27,7 @@ import {
   Building,
   X
 } from 'lucide-react';
+import { DualPunjabLogos, PunjabGovLogo, SchoolEducationDeptLogo } from '../common/OfficialLogos';
 
 export const SchoolCredentialsManager: React.FC = () => {
   const { isDyDEO, isAEO, currentUser, allowedSchools } = useAuth();
@@ -461,18 +462,26 @@ export const SchoolCredentialsManager: React.FC = () => {
       {printSlipSchool && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden p-6">
-            <div className="text-center border-b pb-4 mb-4">
-              <div className="text-xs font-bold uppercase tracking-wider text-emerald-800">
-                GOVERNMENT OF THE PUNJAB · SCHOOL EDUCATION DEPARTMENT
+            <div className="border-b pb-4 mb-4">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <PunjabGovLogo size="sm" />
+                <div className="text-center flex-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
+                    GOVERNMENT OF THE PUNJAB · SCHOOL EDUCATION DEPARTMENT
+                  </div>
+                  <div className="text-sm font-extrabold text-slate-900 mt-0.5">
+                    OFFICE OF THE ASSISTANT EDUCATION OFFICER (AEO)
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    Markaz: {printSlipSchool.school.markaz} · Tehsil Pindi Gheb, District Attock
+                  </div>
+                </div>
+                <SchoolEducationDeptLogo size="sm" />
               </div>
-              <div className="text-sm font-extrabold text-slate-900 mt-0.5">
-                OFFICE OF THE ASSISTANT EDUCATION OFFICER (AEO)
-              </div>
-              <div className="text-xs text-slate-500">
-                Markaz: {printSlipSchool.school.markaz} · Tehsil Pindi Gheb, District Attock
-              </div>
-              <div className="mt-2 inline-block px-3 py-1 bg-emerald-100 text-emerald-900 rounded font-bold text-xs">
-                OFFICIAL SCHOOL PORTAL CREDENTIALS SLIP
+              <div className="text-center">
+                <div className="inline-block px-3 py-1 bg-emerald-100 text-emerald-900 rounded font-bold text-xs">
+                  OFFICIAL SCHOOL PORTAL CREDENTIALS SLIP
+                </div>
               </div>
             </div>
 

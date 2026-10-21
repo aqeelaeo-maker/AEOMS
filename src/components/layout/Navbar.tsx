@@ -18,6 +18,7 @@ import {
   FileText
 } from 'lucide-react';
 import { LoginModal } from '../auth/LoginModal';
+import { DualPunjabLogos } from '../common/OfficialLogos';
 
 interface NavbarProps {
   activeTab: string;
@@ -150,18 +151,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
 
               <button
-                onClick={() => setActiveTab('dashboard')}
-                className="flex items-center gap-2.5 text-left group"
+                onClick={() => setActiveTab(isDyDEO ? 'credentials' : 'schools')}
+                className="flex items-center gap-3 text-left group"
               >
-                <div className="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center font-black text-lg shadow-xs border border-emerald-600 group-hover:bg-emerald-700 transition-colors">
-                  {isDyDEO ? 'DEO' : 'AEO'}
-                </div>
+                <DualPunjabLogos size="md" spacing="gap-2" />
                 <div>
-                  <h1 className="text-base font-bold text-white tracking-tight leading-snug group-hover:text-emerald-200 transition-colors">
-                    {t('appTitle')}
-                  </h1>
-                  <p className="text-xs text-emerald-200/90 hidden sm:block">
-                    {isUrdu ? 'عوامی، پرائیویٹ، پیما اور پیف سکول مانیٹرنگ' : 'Public · Private · PEIMA · PEF Schools Monitoring'}
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-sm sm:text-base font-extrabold text-white tracking-tight leading-snug group-hover:text-emerald-200 transition-colors">
+                      {isDyDEO
+                        ? (isUrdu ? 'دفتر ڈپٹی ڈسٹرکٹ ایجوکیشن آفیسر (Dy. DEO)' : 'Office of Dy. DEO Pindi Gheb')
+                        : (isUrdu ? 'دفتر اسسٹنٹ ایجوکیشن آفیسر (AEO)' : 'Office of AEO Pindi Gheb')}
+                    </h1>
+                    <span className="hidden sm:inline px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-slate-950 uppercase tracking-wide">
+                      {isDyDEO ? 'Dy. DEO Super Admin' : isAEO ? 'AEO Admin' : 'Official'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-200/90 hidden sm:block">
+                    {isUrdu
+                      ? 'حکومت پنجاب · محکمہ سکول ایجوکیشن · تحصیل پنڈی گھیب، ضلع اٹک'
+                      : 'Govt. of the Punjab · School Education Dept · Tehsil Pindi Gheb, District Attock'}
                   </p>
                 </div>
               </button>

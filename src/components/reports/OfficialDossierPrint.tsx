@@ -9,6 +9,7 @@ import {
   getSubmissionBySchool
 } from '../../services/storage';
 import { Printer, ArrowLeft, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { PunjabGovLogo, SchoolEducationDeptLogo } from '../common/OfficialLogos';
 
 interface OfficialDossierPrintProps {
   school: School;
@@ -51,18 +52,24 @@ export const OfficialDossierPrint: React.FC<OfficialDossierPrintProps> = ({ scho
       {/* Official Government Dossier Sheet */}
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-8 sm:p-12 text-slate-900 border border-slate-200 print:border-none print:shadow-none print:p-6 font-sans">
         {/* Punjab Government Official Header */}
-        <div className="border-b-2 border-slate-900 pb-4 text-center">
-          <div className="text-[13px] font-bold tracking-widest text-emerald-900 uppercase">
-            Government of the Punjab · School Education Department
+        <div className="border-b-2 border-slate-900 pb-4">
+          <div className="flex items-center justify-between gap-4">
+            <PunjabGovLogo size="lg" />
+            <div className="text-center flex-1">
+              <div className="text-[13px] font-bold tracking-widest text-emerald-900 uppercase">
+                Government of the Punjab · School Education Department
+              </div>
+              <div className="text-lg font-black text-slate-900 mt-1">
+                OFFICE OF THE DEPUTY DISTRICT EDUCATION OFFICER (DY. DEO)
+              </div>
+              <div className="text-xs font-semibold text-slate-700">
+                Tehsil Pindi Gheb · District Attock · Academic Year 2026-27
+              </div>
+            </div>
+            <SchoolEducationDeptLogo size="lg" />
           </div>
-          <div className="text-lg font-black text-slate-900 mt-1">
-            OFFICE OF THE ASSISTANT EDUCATION OFFICER (AEO)
-          </div>
-          <div className="text-xs font-semibold text-slate-700">
-            Markaz Pindi Gheb · Tehsil Pindi Gheb · District Attock
-          </div>
-          <div className="text-xs font-serif font-bold text-slate-800 mt-2 bg-slate-100 py-1 border-y border-slate-300">
-            COMPREHENSIVE QUARTERLY SCHOOL DATA & VERIFICATION DOSSIER
+          <div className="text-xs font-serif font-bold text-slate-800 mt-3 text-center bg-slate-100 py-1.5 border-y border-slate-300">
+            COMPREHENSIVE OFFICIAL SCHOOL DATA & VERIFICATION DOSSIER
           </div>
         </div>
 

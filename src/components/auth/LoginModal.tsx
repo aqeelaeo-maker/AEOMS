@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Building2, Shield, UserCheck, KeyRound, LogIn, School as SchoolIcon, Eye, EyeOff } from 'lucide-react';
 import { getSchools } from '../../services/storage';
+import { DualPunjabLogos } from '../common/OfficialLogos';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -47,17 +48,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
       <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
         {/* Header */}
-        <div className="bg-slate-900 text-white p-6 relative">
+        <div className="bg-emerald-950 text-white p-5 border-b border-emerald-900">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-600/30 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold">
-                <Building2 className="w-5 h-5" />
-              </div>
+              <DualPunjabLogos size="sm" />
               <div>
                 <h3 className="text-base font-semibold tracking-tight">
                   {isUrdu ? 'سرکاری لاگ ان پورٹل' : 'Official Portal Sign In'}
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-emerald-300">
                   {isUrdu ? 'ڈپٹی ڈی ای او / معاون تعلیمی افسر / سکول پورٹل' : 'Deputy DEO / Assistant Education Officer / School Portal'}
                 </p>
               </div>
