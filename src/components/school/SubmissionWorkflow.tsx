@@ -26,6 +26,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 interface SubmissionWorkflowProps {
   school: School;
@@ -36,7 +37,7 @@ export const SubmissionWorkflow: React.FC<SubmissionWorkflowProps> = ({
   school,
   onOpenOfficialPrint
 }) => {
-  const { isAEO, isSupervisor, isSchoolUser, currentUser } = useAuth();
+  const { isAEO, isSupervisor, isSchoolUser, isDyDEO, currentUser } = useAuth();
   const { t, isUrdu } = useLanguage();
 
   const [submission, setSubmission] = useState<SubmissionRecord | undefined>(() => {
@@ -48,6 +49,7 @@ export const SubmissionWorkflow: React.FC<SubmissionWorkflowProps> = ({
   const [actionType, setActionType] = useState<'approve' | 'return'>('approve');
   const [aeoRemarks, setAeoRemarks] = useState('');
   const [selectedReturnReasons, setSelectedReturnReasons] = useState<string[]>([]);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [correctionsRequested, setCorrectionsRequested] = useState('');
 
   // Readiness Checklist
@@ -71,17 +73,11 @@ export const SubmissionWorkflow: React.FC<SubmissionWorkflowProps> = ({
     setSubmission(getSubmissionBySchool(school.emisCode));
   }, [school.emisCode]);
 
-  const handleSchoolSubmit = () => {
+  const handleExecuteSchoolSubmit = () => {
     if (!currentUser) return;
-    const confirmSubmit = window.confirm(
-      isUrdu
-        ? 'کیا آپ اپنے سکول کے تمام کوائف (داخلہ، بجٹ، عمارات، اساتذہ) معاون تعلیمی افسر (AEO) کو توثیق کیلئے جمع کروانا چاہتے ہیں؟'
-        : 'Are you sure you want to officially submit this school dossier to the Assistant Education Officer (AEO) for review?'
-    );
-    if (!confirmSubmit) return;
-
     const sub = submitDossier(school.emisCode, currentUser, 'Q1 2026-27 (July - September)');
     setSubmission(sub);
+    setShowSubmitConfirm(false);
 
     confetti({
       particleCount: 80,
@@ -383,7 +379,7 @@ export const SubmissionWorkflow: React.FC<SubmissionWorkflowProps> = ({
             <button
               type="button"
               disabled={!allChecklistPassed}
-              onClick={handleSchoolSubmit}
+              onClick={() => setShowSubmitConfirm(true)}
               className="px-5 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-semibold flex items-center gap-2 shadow-xs transition-colors disabled:opacity-50"
             >
               <SendHorizontal className="w-4 h-4" />
@@ -395,8 +391,8 @@ export const SubmissionWorkflow: React.FC<SubmissionWorkflowProps> = ({
             </button>
           )}
 
-          {/* AEO Authority Action: Review / Approve / Return */}
-          {isAEO && (
+          {/* AEO & Dy. DEO Authority Action: Review / Approve / Return */}
+          {(isAEO || isDyDEO || isSupervisor) && (
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -407,7 +403,11 @@ export const SubmissionWorkflow: React.FC<SubmissionWorkflowProps> = ({
                 className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>{isUrdu ? 'منظوری و تصدیقی سرٹیفکیٹ جاری کریں' : 'Approve & Issue Certificate'}</span>
+                <span>
+                  {isUrdu
+                    ? (isDyDEO ? 'منظوری و توثیق (ڈپٹی ڈی ای او)' : 'منظوری و تصدیقی سرٹیفکیٹ جاری کریں')
+                    : (isDyDEO ? 'Approve & Validate Dossier (Dy. DEO)' : 'Approve & Issue Certificate')}
+                </span>
               </button>
 
               <button
@@ -534,6 +534,21 @@ export const SubmissionWorkflow: React.FC<SubmissionWorkflowProps> = ({
           </div>
         </div>
       )}
+
+      {/* In-app Submission Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showSubmitConfirm}
+        title={isUrdu ? 'کوائف جمع کروائیں' : 'Submit School Dossier'}
+        message={
+          isUrdu
+            ? 'کیا آپ اپنے سکول کے تمام کوائف (داخلہ، بجٹ، عمارات، اساتذہ) معاون تعلیمی افسر (AEO) کو توثیق کیلئے جمع کروانا چاہتے ہیں؟'
+            : 'Are you sure you want to officially submit this school dossier to the Assistant Education Officer (AEO) for review?'
+        }
+        confirmText={isUrdu ? 'ارسال کریں' : 'Confirm & Submit'}
+        cancelText={isUrdu ? 'منسوخ کریں' : 'Cancel'}
+        onConfirm={handleExecuteSchoolSubmit}
+        onCancel={() => setShowSubmitConfirm(false)}
+      />
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { School, FTFData, FTFTransaction } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getFTF, saveFTF } from '../../services/storage';
-import { Receipt, Plus, Trash2, Check, ArrowDownRight, ArrowUpRight, Users, ShieldCheck } from 'lucide-react';
+import { Receipt, Plus, Trash2, Edit3, Check, ArrowDownRight, ArrowUpRight, Users, ShieldCheck, X } from 'lucide-react';
 import { ConfirmModal } from '../common/ConfirmModal';
 
 interface FTFModuleProps {
@@ -16,6 +16,7 @@ export const FTFModule: React.FC<FTFModuleProps> = ({ school }) => {
 
   const [ftfData, setFtfData] = useState<FTFData>(() => getFTF(school.emisCode));
   const [showAddTx, setShowAddTx] = useState(false);
+  const [editingTx, setEditingTx] = useState<FTFTransaction | null>(null);
   const [savedNotice, setSavedNotice] = useState(false);
   const [deleteTxId, setDeleteTxId] = useState<string | null>(null);
 
@@ -66,6 +67,29 @@ export const FTFModule: React.FC<FTFModuleProps> = ({ school }) => {
       voucherNo: `FTF-${(updated.transactions.length + 1).toString().padStart(2, '0')}`,
       approvedByCommittee: true
     });
+    setSavedNotice(true);
+    setTimeout(() => setSavedNotice(false), 3000);
+  };
+
+  const handleUpdateTransaction = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTx || !editingTx.amount || editingTx.amount <= 0 || !currentUser) return;
+
+    const updated = {
+      ...ftfData,
+      transactions: ftfData.transactions.map(t =>
+        t.id === editingTx.id
+          ? {
+              ...editingTx,
+              amount: Number(editingTx.amount)
+            }
+          : t
+      )
+    };
+
+    saveFTF(updated, currentUser);
+    setFtfData(getFTF(school.emisCode));
+    setEditingTx(null);
     setSavedNotice(true);
     setTimeout(() => setSavedNotice(false), 3000);
   };
@@ -271,6 +295,102 @@ export const FTFModule: React.FC<FTFModuleProps> = ({ school }) => {
           </form>
         )}
 
+        {/* Edit Transaction Drawer */}
+        {editingTx && (
+          <form onSubmit={handleUpdateTransaction} className="p-5 bg-amber-50/70 border-b border-amber-200 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                <span>{isUrdu ? 'اندراج میں ترمیم کریں' : `Edit FTF Entry: ${editingTx.voucherNo}`}</span>
+              </h4>
+              <button
+                type="button"
+                onClick={() => setEditingTx(null)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Date *</label>
+                <input
+                  type="date"
+                  required
+                  value={editingTx.date}
+                  onChange={e => setEditingTx({ ...editingTx, date: e.target.value })}
+                  className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Type *</label>
+                <select
+                  value={editingTx.type}
+                  onChange={e => setEditingTx({ ...editingTx, type: e.target.value as any })}
+                  className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white"
+                >
+                  <option value="collection">Collection (آمدن +)</option>
+                  <option value="expenditure">Expenditure (خرچ -)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Receipt / Voucher No *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingTx.voucherNo}
+                  onChange={e => setEditingTx({ ...editingTx, voucherNo: e.target.value })}
+                  className="w-full px-2.5 py-1.5 text-xs font-mono border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Amount (PKR) *</label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  value={editingTx.amount || ''}
+                  onChange={e => setEditingTx({ ...editingTx, amount: Number(e.target.value) })}
+                  className="w-full px-2.5 py-1.5 text-xs font-mono font-bold border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white"
+                />
+              </div>
+
+              <div className="sm:col-span-2 md:col-span-4">
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                  Description / Remarks *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingTx.description}
+                  onChange={e => setEditingTx({ ...editingTx, description: e.target.value })}
+                  className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setEditingTx(null)}
+                className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold shadow-xs"
+              >
+                Update FTF Entry
+              </button>
+            </div>
+          </form>
+        )}
+
         {/* Ledger Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
@@ -281,7 +401,7 @@ export const FTFModule: React.FC<FTFModuleProps> = ({ school }) => {
                 <th className="py-3 px-4">Transaction Type</th>
                 <th className="py-3 px-4">Description</th>
                 <th className="py-3 px-4 font-mono text-right">Amount (PKR)</th>
-                {canEdit && <th className="py-3 px-4 text-right">Action</th>}
+                {canEdit && <th className="py-3 px-4 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-sans">
@@ -322,15 +442,28 @@ export const FTFModule: React.FC<FTFModuleProps> = ({ school }) => {
                       {tx.type === 'collection' ? '+' : '-'} Rs. {tx.amount.toLocaleString()}
                     </td>
                     {canEdit && (
-                      <td className="py-2.5 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTxId(tx.id)}
-                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                          title="Delete Entry"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                      <td className="py-2.5 px-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAddTx(false);
+                              setEditingTx({ ...tx });
+                            }}
+                            className="p-1 text-slate-400 hover:text-emerald-700 transition-colors cursor-pointer"
+                            title="Edit Entry"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTxId(tx.id)}
+                            className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Delete Entry"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>

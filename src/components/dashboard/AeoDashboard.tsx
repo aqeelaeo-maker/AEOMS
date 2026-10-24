@@ -77,7 +77,7 @@ export const AeoDashboard: React.FC<AeoDashboardProps> = ({
 
     const nsb = getNSB(school.emisCode);
     if (nsb) {
-      totalNsbReceived += nsb.totalReceived || 0;
+      totalNsbReceived += (nsb.totalIncome ?? nsb.totalReceived ?? 0);
       totalNsbSpent += nsb.totalExpenditure || 0;
     }
 

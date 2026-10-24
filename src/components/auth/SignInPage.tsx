@@ -234,6 +234,22 @@ export const SignInPage: React.FC = () => {
                   <span className="font-bold text-white block">GGES Malhuwali</span>
                   <span className="font-mono text-cyan-300">EMIS: 37120102</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('37120103', '37120103')}
+                  className="p-1.5 rounded-md bg-emerald-950/70 hover:bg-emerald-800 border border-emerald-700/60 text-left text-[10px] text-emerald-200 transition-colors"
+                >
+                  <span className="font-bold text-white block">GHS Ikhlas</span>
+                  <span className="font-mono text-cyan-300">EMIS: 37120103</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('37120104', '37120104')}
+                  className="p-1.5 rounded-md bg-emerald-950/70 hover:bg-emerald-800 border border-emerald-700/60 text-left text-[10px] text-emerald-200 transition-colors"
+                >
+                  <span className="font-bold text-white block">GPS Dandi (Khaur)</span>
+                  <span className="font-mono text-cyan-300">EMIS: 37120104</span>
+                </button>
               </div>
             </div>
           </div>

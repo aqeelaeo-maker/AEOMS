@@ -120,10 +120,14 @@ export const ReportsHub: React.FC<ReportsHubProps> = ({ onOpenDossierPrint }) =>
       'School Name',
       'Category',
       'Bank Account Number',
-      'Total Allocation (PKR)',
-      'Total Received (PKR)',
-      'Total Spent (PKR)',
-      'Remaining Balance (PKR)',
+      'Balance on 30-06-2026 (PKR)',
+      'First Installment (PKR)',
+      'Second Installment (PKR)',
+      'Third Installment (PKR)',
+      'Forth Installment (PKR)',
+      'Total Income (PKR)',
+      'Total Expenditure (PKR)',
+      'Current Balance (PKR)',
       'Cleaning & Hygiene',
       'Repair & Maintenance',
       'Stationery & Exam',
@@ -142,10 +146,14 @@ export const ReportsHub: React.FC<ReportsHubProps> = ({ onOpenDossierPrint }) =>
         s.name,
         s.category,
         nsb.accountNumber,
-        nsb.totalAnnualAllocation,
-        nsb.totalReceived,
-        nsb.totalExpenditure,
-        nsb.currentBalance,
+        nsb.balanceOn30June2026 ?? nsb.openingBalance ?? 0,
+        nsb.firstInstallment ?? nsb.q1Funds ?? 0,
+        nsb.secondInstallment ?? nsb.q2Funds ?? 0,
+        nsb.thirdInstallment ?? nsb.q3Funds ?? 0,
+        nsb.forthInstallment ?? nsb.q4Funds ?? 0,
+        nsb.totalIncome ?? nsb.totalReceived ?? 0,
+        nsb.totalExpenditure ?? 0,
+        nsb.currentBalance ?? 0,
         heads['School Cleaning & Hygiene'] || 0,
         heads['Minor Repair & Maintenance'] || 0,
         heads['Stationery & Examination'] || 0,
@@ -367,30 +375,39 @@ export const ReportsHub: React.FC<ReportsHubProps> = ({ onOpenDossierPrint }) =>
               <table className="w-full text-left text-xs font-mono">
                 <thead className="bg-slate-50 text-slate-700 font-semibold uppercase tracking-wider border-b border-slate-200 font-sans">
                   <tr>
-                    <th className="py-3 px-4">EMIS Code</th>
-                    <th className="py-3 px-4">School</th>
-                    <th className="py-3 px-4">Received</th>
-                    <th className="py-3 px-4">Spent</th>
-                    <th className="py-3 px-4">Balance</th>
-                    <th className="py-3 px-4">Cleaning</th>
-                    <th className="py-3 px-4">Repair</th>
-                    <th className="py-3 px-4">Utilities</th>
+                    <th className="py-3 px-3">EMIS Code</th>
+                    <th className="py-3 px-3">School</th>
+                    <th className="py-3 px-3">Bal. 30-06-2026</th>
+                    <th className="py-3 px-3">Installments</th>
+                    <th className="py-3 px-3">Total Income</th>
+                    <th className="py-3 px-3">Total Spent</th>
+                    <th className="py-3 px-3">Current Balance</th>
+                    <th className="py-3 px-3">Cleaning</th>
+                    <th className="py-3 px-3">Repair</th>
+                    <th className="py-3 px-3">Utilities</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {schools.map(s => {
                     const nsb = getNSB(s.emisCode);
                     const heads = nsb.expendituresByHead || {};
+                    const totalInstallments =
+                      (nsb.firstInstallment ?? 0) +
+                      (nsb.secondInstallment ?? 0) +
+                      (nsb.thirdInstallment ?? 0) +
+                      (nsb.forthInstallment ?? 0);
                     return (
                       <tr key={s.emisCode} className="hover:bg-slate-50">
-                        <td className="py-2.5 px-4 font-bold text-slate-900">{s.emisCode}</td>
-                        <td className="py-2.5 px-4 font-sans font-medium text-slate-800">{s.name}</td>
-                        <td className="py-2.5 px-4 font-bold text-slate-900">Rs. {nsb.totalReceived.toLocaleString()}</td>
-                        <td className="py-2.5 px-4 text-rose-700 font-bold">Rs. {nsb.totalExpenditure.toLocaleString()}</td>
-                        <td className="py-2.5 px-4 text-emerald-800 font-bold">Rs. {nsb.currentBalance.toLocaleString()}</td>
-                        <td className="py-2.5 px-4 text-slate-600">Rs. {(heads['School Cleaning & Hygiene'] || 0).toLocaleString()}</td>
-                        <td className="py-2.5 px-4 text-slate-600">Rs. {(heads['Minor Repair & Maintenance'] || 0).toLocaleString()}</td>
-                        <td className="py-2.5 px-4 text-slate-600">Rs. {(heads['Utility Bills (Electricity/Water/Gas)'] || 0).toLocaleString()}</td>
+                        <td className="py-2.5 px-3 font-bold text-slate-900">{s.emisCode}</td>
+                        <td className="py-2.5 px-3 font-sans font-medium text-slate-800">{s.name}</td>
+                        <td className="py-2.5 px-3 text-slate-700">Rs. {(nsb.balanceOn30June2026 ?? 0).toLocaleString()}</td>
+                        <td className="py-2.5 px-3 text-slate-700 font-mono text-[11px]">Rs. {totalInstallments.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 font-bold text-emerald-900">Rs. {nsb.totalIncome.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 text-rose-700 font-bold">Rs. {nsb.totalExpenditure.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 text-emerald-800 font-black">Rs. {nsb.currentBalance.toLocaleString()}</td>
+                        <td className="py-2.5 px-3 text-slate-600">Rs. {(heads['School Cleaning & Hygiene'] || 0).toLocaleString()}</td>
+                        <td className="py-2.5 px-3 text-slate-600">Rs. {(heads['Minor Repair & Maintenance'] || 0).toLocaleString()}</td>
+                        <td className="py-2.5 px-3 text-slate-600">Rs. {(heads['Utility Bills (Electricity/Water/Gas)'] || 0).toLocaleString()}</td>
                       </tr>
                     );
                   })}

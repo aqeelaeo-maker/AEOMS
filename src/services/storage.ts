@@ -88,6 +88,32 @@ export function initializeStorage(): void {
   }
   if (!localStorage.getItem(STORAGE_KEYS.NSB)) {
     localStorage.setItem(STORAGE_KEYS.NSB, JSON.stringify(initialNSB));
+  } else {
+    try {
+      const storedNsb = JSON.parse(localStorage.getItem(STORAGE_KEYS.NSB) || '{}');
+      let changed = false;
+      for (const emis of Object.keys(storedNsb)) {
+        const item = storedNsb[emis];
+        if (item && item.balanceOn30June2026 === undefined) {
+          item.balanceOn30June2026 = Number(item.openingBalance ?? 0);
+          item.firstInstallment = Number(item.q1Funds ?? 0);
+          item.secondInstallment = Number(item.q2Funds ?? 0);
+          item.thirdInstallment = Number(item.q3Funds ?? 0);
+          item.forthInstallment = Number(item.q4Funds ?? 0);
+          item.totalIncome =
+            item.balanceOn30June2026 +
+            item.firstInstallment +
+            item.secondInstallment +
+            item.thirdInstallment +
+            item.forthInstallment;
+          item.currentBalance = item.totalIncome - Number(item.totalExpenditure ?? 0);
+          changed = true;
+        }
+      }
+      if (changed) {
+        localStorage.setItem(STORAGE_KEYS.NSB, JSON.stringify(storedNsb));
+      }
+    } catch {}
   }
   if (!localStorage.getItem(STORAGE_KEYS.FTF)) {
     localStorage.setItem(STORAGE_KEYS.FTF, JSON.stringify(initialFTF));
@@ -706,21 +732,78 @@ export function getNSB(schoolEmisCode: string): NSBData {
   initializeStorage();
   try {
     const map = JSON.parse(localStorage.getItem(STORAGE_KEYS.NSB) || '{}');
-    if (map[schoolEmisCode]) return map[schoolEmisCode];
+    if (map[schoolEmisCode]) {
+      const d = map[schoolEmisCode];
+      const balanceOn30June2026 = Number(d.balanceOn30June2026 ?? d.openingBalance ?? 0);
+      const firstInstallment = Number(d.firstInstallment ?? d.q1Funds ?? 0);
+      const secondInstallment = Number(d.secondInstallment ?? d.q2Funds ?? 0);
+      const thirdInstallment = Number(d.thirdInstallment ?? d.q3Funds ?? 0);
+      const forthInstallment = Number(d.forthInstallment ?? d.q4Funds ?? 0);
+      const totalIncome =
+        balanceOn30June2026 +
+        firstInstallment +
+        secondInstallment +
+        thirdInstallment +
+        forthInstallment;
+
+      const transactions: NSBTransaction[] = d.transactions || [];
+      const headTotals: Record<string, number> = {};
+      let totalSpent = 0;
+      transactions.forEach(tx => {
+        headTotals[tx.head] = (headTotals[tx.head] || 0) + Number(tx.amount || 0);
+        totalSpent += Number(tx.amount || 0);
+      });
+
+      const totalExpenditure = totalSpent;
+      const currentBalance = totalIncome - totalExpenditure;
+
+      return {
+        ...d,
+        balanceOn30June2026,
+        firstInstallment,
+        secondInstallment,
+        thirdInstallment,
+        forthInstallment,
+        totalIncome,
+        totalExpenditure,
+        currentBalance,
+        openingBalance: balanceOn30June2026,
+        q1Funds: firstInstallment,
+        q2Funds: secondInstallment,
+        q3Funds: thirdInstallment,
+        q4Funds: forthInstallment,
+        totalReceived: totalIncome,
+        expendituresByHead: headTotals,
+        transactions
+      };
+    }
   } catch {}
+
+  const defaultBalance30June = 0;
+  const defaultFirst = 62500;
+  const defaultSecond = 62500;
+  const defaultThird = 0;
+  const defaultForth = 0;
+  const defaultTotalIncome = defaultBalance30June + defaultFirst + defaultSecond + defaultThird + defaultForth;
 
   return {
     schoolEmisCode,
     financialYear: '2026-2027',
-    openingBalance: 0,
-    totalAnnualAllocation: 250000,
-    q1Funds: 62500,
-    q2Funds: 62500,
-    q3Funds: 0,
-    q4Funds: 0,
-    totalReceived: 125000,
+    balanceOn30June2026: defaultBalance30June,
+    firstInstallment: defaultFirst,
+    secondInstallment: defaultSecond,
+    thirdInstallment: defaultThird,
+    forthInstallment: defaultForth,
+    totalIncome: defaultTotalIncome,
     totalExpenditure: 0,
-    currentBalance: 125000,
+    currentBalance: defaultTotalIncome,
+    openingBalance: defaultBalance30June,
+    totalAnnualAllocation: 250000,
+    q1Funds: defaultFirst,
+    q2Funds: defaultSecond,
+    q3Funds: defaultThird,
+    q4Funds: defaultForth,
+    totalReceived: defaultTotalIncome,
     expendituresByHead: {},
     transactions: [],
     bankName: 'National Bank of Pakistan',
@@ -733,17 +816,45 @@ export function getNSB(schoolEmisCode: string): NSBData {
 export function saveNSB(data: NSBData, user: UserAccount): void {
   const map = JSON.parse(localStorage.getItem(STORAGE_KEYS.NSB) || '{}');
   
-  // Recalculate expenditures
+  // Recalculate expenditures from transaction vouchers
   const headTotals: Record<string, number> = {};
   let totalSpent = 0;
-  data.transactions.forEach(tx => {
+  (data.transactions || []).forEach(tx => {
     headTotals[tx.head] = (headTotals[tx.head] || 0) + Number(tx.amount || 0);
     totalSpent += Number(tx.amount || 0);
   });
   data.expendituresByHead = headTotals;
   data.totalExpenditure = totalSpent;
-  data.totalReceived = Number(data.openingBalance || 0) + Number(data.q1Funds || 0) + Number(data.q2Funds || 0) + Number(data.q3Funds || 0) + Number(data.q4Funds || 0);
-  data.currentBalance = data.totalReceived - data.totalExpenditure;
+
+  // Compute requested official fields
+  const balanceOn30June2026 = Number(data.balanceOn30June2026 ?? data.openingBalance ?? 0);
+  const firstInstallment = Number(data.firstInstallment ?? data.q1Funds ?? 0);
+  const secondInstallment = Number(data.secondInstallment ?? data.q2Funds ?? 0);
+  const thirdInstallment = Number(data.thirdInstallment ?? data.q3Funds ?? 0);
+  const forthInstallment = Number(data.forthInstallment ?? data.q4Funds ?? 0);
+  const totalIncome =
+    balanceOn30June2026 +
+    firstInstallment +
+    secondInstallment +
+    thirdInstallment +
+    forthInstallment;
+  const currentBalance = totalIncome - totalSpent;
+
+  data.balanceOn30June2026 = balanceOn30June2026;
+  data.firstInstallment = firstInstallment;
+  data.secondInstallment = secondInstallment;
+  data.thirdInstallment = thirdInstallment;
+  data.forthInstallment = forthInstallment;
+  data.totalIncome = totalIncome;
+  data.currentBalance = currentBalance;
+
+  // Synced compatibility values
+  data.openingBalance = balanceOn30June2026;
+  data.q1Funds = firstInstallment;
+  data.q2Funds = secondInstallment;
+  data.q3Funds = thirdInstallment;
+  data.q4Funds = forthInstallment;
+  data.totalReceived = totalIncome;
   data.lastUpdated = new Date().toISOString();
 
   map[data.schoolEmisCode] = data;
@@ -756,9 +867,13 @@ export function saveNSB(data: NSBData, user: UserAccount): void {
     user.role,
     'Update NSB Account',
     'NSB Funds',
-    `Updated NSB balance: Spent Rs. ${data.totalExpenditure.toLocaleString()}, Remaining Balance Rs. ${data.currentBalance.toLocaleString()}.`,
+    `Updated NSB: Total Income Rs. ${data.totalIncome.toLocaleString()} (Bal on 30-06-2026: Rs. ${data.balanceOn30June2026.toLocaleString()}, 1st: Rs. ${data.firstInstallment.toLocaleString()}, 2nd: Rs. ${data.secondInstallment.toLocaleString()}, 3rd: Rs. ${data.thirdInstallment.toLocaleString()}, 4th: Rs. ${data.forthInstallment.toLocaleString()}), Total Expenditure Rs. ${data.totalExpenditure.toLocaleString()}, Current Balance Rs. ${data.currentBalance.toLocaleString()}.`,
     data.schoolEmisCode
   );
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('nsb_updated', { detail: { schoolEmisCode: data.schoolEmisCode } }));
+  }
 }
 
 // FTF (Farogh-e-Taleem Fund)
@@ -1051,6 +1166,10 @@ export function submitDossier(schoolEmisCode: string, user: UserAccount, period:
     sub.schoolName
   );
 
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('submissions_updated', { detail: { schoolEmisCode, submission: sub } }));
+  }
+
   return sub;
 }
 
@@ -1098,6 +1217,10 @@ export function updateSubmissionStatus(
     sub.schoolEmisCode,
     sub.schoolName
   );
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('submissions_updated', { detail: { schoolEmisCode: sub.schoolEmisCode, submission: sub } }));
+  }
 
   return sub;
 }

@@ -15,6 +15,7 @@ import {
   ExternalLink,
   ShieldCheck
 } from 'lucide-react';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 interface DocumentsModuleProps {
   school: School;
@@ -27,6 +28,7 @@ export const DocumentsModule: React.FC<DocumentsModuleProps> = ({ school }) => {
   const [documents, setDocuments] = useState<DocumentUpload[]>(() => getDocuments(school.emisCode));
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedPreviewDoc, setSelectedPreviewDoc] = useState<DocumentUpload | null>(null);
+  const [deleteTargetDocId, setDeleteTargetDocId] = useState<string | null>(null);
 
   // Upload Form State
   const [title, setTitle] = useState('');
@@ -76,15 +78,11 @@ export const DocumentsModule: React.FC<DocumentsModuleProps> = ({ school }) => {
     setNotes('');
   };
 
-  const handleDelete = (docId: string) => {
-    if (!currentUser || !canEdit) return;
-    const confirmDelete = window.confirm(
-      isUrdu ? 'کیا آپ اس دستاویز/تصویر کو حذف کرنا چاہتے ہیں؟' : 'Delete this document evidence?'
-    );
-    if (!confirmDelete) return;
-
-    deleteDocument(docId, currentUser);
+  const handleExecuteDelete = () => {
+    if (!currentUser || !canEdit || !deleteTargetDocId) return;
+    deleteDocument(deleteTargetDocId, currentUser);
     setDocuments(getDocuments(school.emisCode));
+    setDeleteTargetDocId(null);
   };
 
   const handleToggleVerification = (docId: string) => {
@@ -312,8 +310,8 @@ export const DocumentsModule: React.FC<DocumentsModuleProps> = ({ school }) => {
                   {canEdit && (
                     <button
                       type="button"
-                      onClick={() => handleDelete(doc.id)}
-                      className="p-1 text-slate-400 hover:text-rose-600 transition-colors"
+                      onClick={() => setDeleteTargetDocId(doc.id)}
+                      className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
                       title="Delete document"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -375,6 +373,21 @@ export const DocumentsModule: React.FC<DocumentsModuleProps> = ({ school }) => {
           </div>
         </div>
       )}
+
+      {/* In-app Document Delete Confirm Modal */}
+      <ConfirmModal
+        isOpen={deleteTargetDocId !== null}
+        title={isUrdu ? 'دستاویز حذف کریں' : 'Delete Document Evidence'}
+        message={
+          isUrdu
+            ? 'کیا آپ واقعی اس تصدیقی ثبوت/دستاویز کو مستقل طور پر حذف کرنا چاہتے ہیں؟'
+            : 'Are you sure you want to permanently delete this document evidence?'
+        }
+        confirmText={isUrdu ? 'حذف کریں' : 'Delete Document'}
+        cancelText={isUrdu ? 'منسوخ کریں' : 'Cancel'}
+        onConfirm={handleExecuteDelete}
+        onCancel={() => setDeleteTargetDocId(null)}
+      />
     </div>
   );
 };

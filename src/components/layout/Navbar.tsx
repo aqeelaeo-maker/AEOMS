@@ -77,7 +77,8 @@ export const Navbar: React.FC<NavbarProps> = ({
         setBackupNotice(isUrdu ? 'ڈیٹا کامیابی سے بحال ہو گیا! صفحہ ریفریش ہو رہا ہے...' : 'Database restored successfully! Refreshing...');
         setTimeout(() => window.location.reload(), 1500);
       } else {
-        alert(isUrdu ? 'غلط بیک اپ فائل۔ بحالی ناکام ہو گئی۔' : 'Invalid backup JSON file.');
+        setBackupNotice(isUrdu ? 'غلط بیک اپ فائل۔ بحالی ناکام ہو گئی۔' : 'Invalid backup JSON file.');
+        setTimeout(() => setBackupNotice(null), 4000);
       }
     };
     reader.readAsText(file);

@@ -133,7 +133,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           isOpenMobile ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
-        {/* Left Pane Header with Official Government of Punjab & SED Logos */}
+        {/* Left Pane Header with Official School Education Department Logo */}
         <div className="p-3.5 border-b border-emerald-900 bg-emerald-900/60 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             {/* Official School Education Department Logo */}

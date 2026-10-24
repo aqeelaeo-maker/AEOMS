@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { UserAccount, School } from '../../types';
@@ -9,6 +9,7 @@ import {
   resetAeoPasswordToDefaultCnic,
   getSchools
 } from '../../services/storage';
+import { ConfirmModal } from '../common/ConfirmModal';
 import {
   KeyRound,
   Shield,
@@ -41,6 +42,10 @@ export const AeoCredentialsManager: React.FC = () => {
   const [notice, setNotice] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // In-app Confirmation Modal States (Iframe-safe)
+  const [resetTargetAeo, setResetTargetAeo] = useState<UserAccount | null>(null);
+  const [deleteTargetAeo, setDeleteTargetAeo] = useState<UserAccount | null>(null);
+
   // Modal State for Add / Edit
   const [modalOpen, setModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -61,6 +66,13 @@ export const AeoCredentialsManager: React.FC = () => {
   const refreshList = () => {
     setAeoList(getAeoAccounts());
   };
+
+  useEffect(() => {
+    refreshList();
+    const handleUpdate = () => refreshList();
+    window.addEventListener('aeo_updated', handleUpdate);
+    return () => window.removeEventListener('aeo_updated', handleUpdate);
+  }, []);
 
   const markazOptions = Array.from(
     new Set([...getSchools().map(s => s.markaz), 'Pindi Gheb City', 'Khaur', 'Malhuwali', 'Ikhlas'])
@@ -128,19 +140,15 @@ export const AeoCredentialsManager: React.FC = () => {
     setTimeout(() => setNotice(null), 3500);
   };
 
-  const handleResetToCnic = async (aeo: UserAccount) => {
-    if (!currentUser) return;
+  const handleExecuteResetToCnic = async () => {
+    if (!currentUser || !resetTargetAeo) return;
+    const aeo = resetTargetAeo;
     const cnicVal = aeo.cnic || aeo.username;
-    const confirmReset = window.confirm(
-      isUrdu
-        ? `کیا آپ واقعی اسسٹنٹ ایجوکیشن آفیسر "${aeo.displayName}" کا پاس ورڈ واپس ان کے CNIC نمبر (${cnicVal}) پر ری سیٹ کرنا چاہتے ہیں؟`
-        : `Reset password for AEO "${aeo.displayName}" to default CNIC (${cnicVal})?`
-    );
-    if (!confirmReset) return;
 
     const res = await resetAeoPasswordToDefaultCnic(aeo.id, currentUser);
     if (!res.success) {
-      alert(res.error || 'Failed to reset password');
+      setErrorMsg(res.error || 'Failed to reset password');
+      setResetTargetAeo(null);
       return;
     }
 
@@ -150,26 +158,28 @@ export const AeoCredentialsManager: React.FC = () => {
         ? `اے ای او "${aeo.displayName}" کا پاس ورڈ ان کے CNIC (${cnicVal}) پر ری سیٹ کر دیا گیا۔`
         : `Password for AEO "${aeo.displayName}" reset to default CNIC (${cnicVal}).`
     );
+    setResetTargetAeo(null);
     setTimeout(() => setNotice(null), 3500);
   };
 
-  const handleDelete = async (aeo: UserAccount) => {
-    if (!currentUser) return;
-    const confirm = window.confirm(
-      isUrdu
-        ? `کیا آپ واقعی اسسٹنٹ ایجوکیشن آفیسر "${aeo.displayName}" (مرکز: ${aeo.assignedMarkaz}) کا اکاؤنٹ منسوخ کرنا چاہتے ہیں؟`
-        : `Are you sure you want to revoke credentials and remove AEO "${aeo.displayName}" (Markaz: ${aeo.assignedMarkaz})?`
-    );
-    if (!confirm) return;
+  const handleExecuteDeleteAeo = async () => {
+    if (!currentUser || !deleteTargetAeo) return;
+    const aeo = deleteTargetAeo;
 
     const res = await deleteAeoAccount(aeo.id, currentUser);
     if (!res.success) {
-      alert(res.error);
+      setErrorMsg(res.error || 'Failed to revoke AEO account');
+      setDeleteTargetAeo(null);
       return;
     }
 
     refreshList();
-    setNotice(isUrdu ? `اے ای او "${aeo.displayName}" کا اکاؤنٹ منسوخ کر دیا گیا۔` : `Revoked AEO account for ${aeo.displayName}.`);
+    setNotice(
+      isUrdu
+        ? `اے ای او "${aeo.displayName}" کا اکاؤنٹ منسوخ کر دیا گیا۔`
+        : `Revoked AEO account for ${aeo.displayName}.`
+    );
+    setDeleteTargetAeo(null);
     setTimeout(() => setNotice(null), 3500);
   };
 
@@ -420,8 +430,8 @@ export const AeoCredentialsManager: React.FC = () => {
                           {/* Reset Password to CNIC */}
                           <button
                             type="button"
-                            onClick={() => handleResetToCnic(aeo)}
-                            className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors"
+                            onClick={() => setResetTargetAeo(aeo)}
+                            className="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
                             title={isUrdu ? 'پاس ورڈ واپس CNIC پر ری سیٹ کریں' : 'Reset Password to CNIC Number'}
                           >
                             <KeyRound className="w-4 h-4" />
@@ -430,8 +440,8 @@ export const AeoCredentialsManager: React.FC = () => {
                           {/* Delete AEO */}
                           <button
                             type="button"
-                            onClick={() => handleDelete(aeo)}
-                            className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors"
+                            onClick={() => setDeleteTargetAeo(aeo)}
+                            className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                             title={isUrdu ? 'اے ای او اکاؤنٹ حذف کریں' : 'Delete AEO Record'}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -682,6 +692,35 @@ export const AeoCredentialsManager: React.FC = () => {
           </div>
         </div>
       )}
+      {/* In-app Reset Password Confirm Modal */}
+      <ConfirmModal
+        isOpen={resetTargetAeo !== null}
+        title={isUrdu ? 'پاس ورڈ ری سیٹ کریں' : 'Reset AEO Password'}
+        message={
+          isUrdu
+            ? `کیا آپ واقعی اسسٹنٹ ایجوکیشن آفیسر "${resetTargetAeo?.displayName}" کا پاس ورڈ واپس ان کے CNIC نمبر (${resetTargetAeo?.cnic || resetTargetAeo?.username}) پر ری سیٹ کرنا چاہتے ہیں؟`
+            : `Reset password for AEO "${resetTargetAeo?.displayName}" back to default CNIC (${resetTargetAeo?.cnic || resetTargetAeo?.username})?`
+        }
+        confirmText={isUrdu ? 'ری سیٹ کریں' : 'Reset to CNIC'}
+        cancelText={isUrdu ? 'منسوخ کریں' : 'Cancel'}
+        onConfirm={handleExecuteResetToCnic}
+        onCancel={() => setResetTargetAeo(null)}
+      />
+
+      {/* In-app Delete / Revoke Account Confirm Modal */}
+      <ConfirmModal
+        isOpen={deleteTargetAeo !== null}
+        title={isUrdu ? 'اے ای او اکاؤنٹ منسوخ کریں' : 'Revoke AEO Account'}
+        message={
+          isUrdu
+            ? `کیا آپ واقعی اسسٹنٹ ایجوکیشن آفیسر "${deleteTargetAeo?.displayName}" (مرکز: ${deleteTargetAeo?.assignedMarkaz}) کے لاگ ان اختیارات منسوخ کرنا چاہتے ہیں؟`
+            : `Are you sure you want to permanently revoke credentials and remove AEO "${deleteTargetAeo?.displayName}" (Markaz: ${deleteTargetAeo?.assignedMarkaz})?`
+        }
+        confirmText={isUrdu ? 'اکاؤنٹ منسوخ کریں' : 'Revoke & Delete'}
+        cancelText={isUrdu ? 'منسوخ کریں' : 'Cancel'}
+        onConfirm={handleExecuteDeleteAeo}
+        onCancel={() => setDeleteTargetAeo(null)}
+      />
     </div>
   );
 };

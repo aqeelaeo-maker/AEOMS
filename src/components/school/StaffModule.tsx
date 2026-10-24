@@ -3,7 +3,7 @@ import { School, StaffSummaryData, TeacherStaff } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { getStaff, saveStaff } from '../../services/storage';
-import { GraduationCap, Plus, Trash2, Save, Check, UserCheck, AlertCircle, Phone, Briefcase } from 'lucide-react';
+import { GraduationCap, Plus, Trash2, Edit3, Save, Check, UserCheck, AlertCircle, Phone, Briefcase, X } from 'lucide-react';
 import { ConfirmModal } from '../common/ConfirmModal';
 
 interface StaffModuleProps {
@@ -16,6 +16,7 @@ export const StaffModule: React.FC<StaffModuleProps> = ({ school }) => {
 
   const [staffData, setStaffData] = useState<StaffSummaryData>(() => getStaff(school.emisCode));
   const [showAddTeacher, setShowAddTeacher] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<TeacherStaff | null>(null);
   const [savedNotice, setSavedNotice] = useState(false);
   const [deleteTeacherId, setDeleteTeacherId] = useState<string | null>(null);
 
@@ -87,6 +88,31 @@ export const StaffModule: React.FC<StaffModuleProps> = ({ school }) => {
       phone: '',
       status: 'Present'
     });
+    setSavedNotice(true);
+    setTimeout(() => setSavedNotice(false), 3000);
+  };
+
+  const handleUpdateTeacher = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTeacher || !editingTeacher.name || !currentUser) return;
+
+    const updatedTeachers = staffData.teachers.map(t =>
+      t.id === editingTeacher.id
+        ? {
+            ...editingTeacher,
+            bps: Number(editingTeacher.bps) || 14
+          }
+        : t
+    );
+
+    const updated = {
+      ...staffData,
+      teachers: updatedTeachers
+    };
+
+    saveStaff(updated, currentUser);
+    setStaffData(getStaff(school.emisCode));
+    setEditingTeacher(null);
     setSavedNotice(true);
     setTimeout(() => setSavedNotice(false), 3000);
   };
@@ -365,6 +391,142 @@ export const StaffModule: React.FC<StaffModuleProps> = ({ school }) => {
           </form>
         )}
 
+        {/* Edit Teacher Drawer */}
+        {editingTeacher && (
+          <form onSubmit={handleUpdateTeacher} className="p-5 bg-amber-50/70 border-b border-amber-200 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                <span>{isUrdu ? 'استاد کے کوائف میں ترمیم' : `Edit Teacher Record: ${editingTeacher.name}`}</span>
+              </h4>
+              <button
+                type="button"
+                onClick={() => setEditingTeacher(null)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingTeacher.name}
+                  onChange={e => setEditingTeacher({ ...editingTeacher, name: e.target.value })}
+                  className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Designation *</label>
+                <input
+                  type="text"
+                  required
+                  value={editingTeacher.designation}
+                  onChange={e => setEditingTeacher({ ...editingTeacher, designation: e.target.value })}
+                  className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">BPS Pay Scale *</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="22"
+                  required
+                  value={editingTeacher.bps}
+                  onChange={e => setEditingTeacher({ ...editingTeacher, bps: Number(e.target.value) })}
+                  className="w-full px-2.5 py-1.5 text-xs font-mono font-bold border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Personal No.</label>
+                <input
+                  type="text"
+                  value={editingTeacher.personalNo}
+                  onChange={e => setEditingTeacher({ ...editingTeacher, personalNo: e.target.value })}
+                  className="w-full px-2.5 py-1.5 text-xs font-mono border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">CNIC Number</label>
+                <input
+                  type="text"
+                  value={editingTeacher.cnic}
+                  onChange={e => setEditingTeacher({ ...editingTeacher, cnic: e.target.value })}
+                  className="w-full px-2.5 py-1.5 text-xs font-mono border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Status</label>
+                <select
+                  value={editingTeacher.status}
+                  onChange={e => setEditingTeacher({ ...editingTeacher, status: e.target.value as any })}
+                  className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white"
+                >
+                  <option value="Present">Present</option>
+                  <option value="On Leave">On Leave</option>
+                  <option value="Transferred">Transferred</option>
+                  <option value="Deputation">Deputation</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Qualification</label>
+                <input
+                  type="text"
+                  value={editingTeacher.qualification}
+                  onChange={e => setEditingTeacher({ ...editingTeacher, qualification: e.target.value })}
+                  className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Contact Phone</label>
+                <input
+                  type="text"
+                  value={editingTeacher.phone}
+                  onChange={e => setEditingTeacher({ ...editingTeacher, phone: e.target.value })}
+                  className="w-full px-2.5 py-1.5 text-xs font-mono border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 mb-1">Station Joining Date</label>
+                <input
+                  type="date"
+                  value={editingTeacher.presentStationJoining}
+                  onChange={e => setEditingTeacher({ ...editingTeacher, presentStationJoining: e.target.value })}
+                  className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-amber-600 bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setEditingTeacher(null)}
+                className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold shadow-xs"
+              >
+                Update Teacher Record
+              </button>
+            </div>
+          </form>
+        )}
+
         {/* Staff Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
@@ -378,7 +540,7 @@ export const StaffModule: React.FC<StaffModuleProps> = ({ school }) => {
                 <th className="py-3 px-4">Station Joining</th>
                 <th className="py-3 px-4">Contact</th>
                 <th className="py-3 px-4">Status</th>
-                {canEdit && <th className="py-3 px-4 text-right">Action</th>}
+                {canEdit && <th className="py-3 px-4 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-sans">
@@ -420,15 +582,28 @@ export const StaffModule: React.FC<StaffModuleProps> = ({ school }) => {
                       </span>
                     </td>
                     {canEdit && (
-                      <td className="py-2.5 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTeacherId(teacher.id)}
-                          className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                          title="Remove Teacher"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                      <td className="py-2.5 px-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAddTeacher(false);
+                              setEditingTeacher({ ...teacher });
+                            }}
+                            className="p-1 text-slate-400 hover:text-emerald-700 transition-colors cursor-pointer"
+                            title="Edit Teacher"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTeacherId(teacher.id)}
+                            className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                            title="Remove Teacher"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>

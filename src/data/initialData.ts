@@ -428,15 +428,21 @@ export const initialNSB: Record<string, NSBData> = {
   '37120101': {
     schoolEmisCode: '37120101',
     financialYear: '2026-2027',
+    balanceOn30June2026: 42500,
+    firstInstallment: 80000,
+    secondInstallment: 80000,
+    thirdInstallment: 0,
+    forthInstallment: 0,
+    totalIncome: 202500, // 42500 + 80000 + 80000 + 0 + 0
+    totalExpenditure: 114200,
+    currentBalance: 88300,
     openingBalance: 42500,
     totalAnnualAllocation: 320000,
     q1Funds: 80000,
     q2Funds: 80000,
     q3Funds: 0,
     q4Funds: 0,
-    totalReceived: 202500, // opening + q1 + q2
-    totalExpenditure: 114200,
-    currentBalance: 88300,
+    totalReceived: 202500,
     expendituresByHead: {
       'School Cleaning & Hygiene': 28500,
       'Minor Repair & Maintenance': 34000,
@@ -512,6 +518,14 @@ export const initialNSB: Record<string, NSBData> = {
   '37120102': {
     schoolEmisCode: '37120102',
     financialYear: '2026-2027',
+    balanceOn30June2026: 65000,
+    firstInstallment: 135000,
+    secondInstallment: 135000,
+    thirdInstallment: 0,
+    forthInstallment: 0,
+    totalIncome: 335000, // 65000 + 135000 + 135000 + 0 + 0
+    totalExpenditure: 198400,
+    currentBalance: 136600,
     openingBalance: 65000,
     totalAnnualAllocation: 540000,
     q1Funds: 135000,
@@ -519,8 +533,6 @@ export const initialNSB: Record<string, NSBData> = {
     q3Funds: 0,
     q4Funds: 0,
     totalReceived: 335000,
-    totalExpenditure: 198400,
-    currentBalance: 136600,
     expendituresByHead: {
       'School Cleaning & Hygiene': 35000,
       'Minor Repair & Maintenance': 58000,

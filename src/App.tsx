@@ -22,8 +22,20 @@ import { AeoCredentialsManager } from './components/auth/AeoCredentialsManager';
 import { SchoolCredentialsManager } from './components/auth/SchoolCredentialsManager';
 import { CredentialsManagementHub } from './components/auth/CredentialsManagementHub';
 import { SchoolEducationDeptLogo } from './components/common/OfficialLogos';
-import { getSchools, getSubmissions, getSchoolByEmis } from './services/storage';
-import { School as SchoolIcon, ArrowLeft, ChevronDown, Eye, CheckCircle2 } from 'lucide-react';
+import { getSchools, getSubmissions, getSchoolByEmis, getSubmissionBySchool } from './services/storage';
+import { SchoolQuickSubmitModal } from './components/school/SchoolQuickSubmitModal';
+import {
+  School as SchoolIcon,
+  ArrowLeft,
+  ChevronDown,
+  Eye,
+  CheckCircle2,
+  Clock,
+  RotateCcw,
+  SendHorizontal,
+  Award,
+  Filter
+} from 'lucide-react';
 
 const MainLayout: React.FC = () => {
   const {
@@ -45,6 +57,8 @@ const MainLayout: React.FC = () => {
 
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
   const [printDossierSchoolEmis, setPrintDossierSchoolEmis] = useState<string | null>(null);
+  const [topMarkazFilter, setTopMarkazFilter] = useState<string>('all');
+  const [isSchoolSubmitModalOpen, setIsSchoolSubmitModalOpen] = useState(false);
 
   const schools = allowedSchools;
   const submissions = getSubmissions();
@@ -52,9 +66,18 @@ const MainLayout: React.FC = () => {
     s => s.status === 'submitted' || s.status === 'under_review'
   ).length;
 
+  const allMarkazOptions = React.useMemo(() => {
+    return Array.from(new Set(getSchools().map(s => s.markaz))).filter(Boolean);
+  }, []);
+
+  const displayedSwitcherSchools = isDyDEO && topMarkazFilter !== 'all'
+    ? schools.filter(s => s.markaz === topMarkazFilter)
+    : schools;
+
   // Active target school:
   // If school user, ALWAYS their assigned school. If AEO, their markaz schools.
   const activeSchool = currentSchool || (schools.length > 0 ? schools[0] : null);
+  const schoolSubmission = activeSchool ? getSubmissionBySchool(activeSchool.emisCode) : undefined;
 
   const handleSelectSchoolFromDashboard = (emisCode: string, targetTab: string = 'enrollment') => {
     setSelectedSchoolEmis(emisCode);
@@ -128,16 +151,44 @@ const MainLayout: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Quick School Switcher & Actions for AEO / Supervisor */}
-                {(isAEO || isSupervisor) && (
-                  <div className="flex items-center gap-2 shrink-0">
+                {/* Quick Switcher for Dy. DEO / AEO / Supervisor */}
+                {(isAEO || isSupervisor || isDyDEO) && (
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    {/* Dy. DEO Markaz Selector */}
+                    {isDyDEO && (
+                      <div className="relative">
+                        <select
+                          value={topMarkazFilter}
+                          onChange={e => {
+                            const newM = e.target.value;
+                            setTopMarkazFilter(newM);
+                            if (newM !== 'all') {
+                              const firstInM = schools.find(s => s.markaz === newM);
+                              if (firstInM) setSelectedSchoolEmis(firstInM.emisCode);
+                            }
+                          }}
+                          className="text-xs bg-emerald-900 border border-emerald-700 text-amber-300 font-semibold rounded-lg py-1.5 px-2.5 pr-7 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer max-w-[170px] truncate"
+                          title="Filter schools by Markaz Name"
+                        >
+                          <option value="all" className="bg-emerald-950 text-white">All Markazes</option>
+                          {allMarkazOptions.map(m => (
+                            <option key={m} value={m} className="bg-emerald-950 text-white">
+                              Markaz {m}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="w-3.5 h-3.5 text-amber-300 absolute right-2 top-2.5 pointer-events-none" />
+                      </div>
+                    )}
+
+                    {/* School Switcher */}
                     <div className="relative">
                       <select
                         value={selectedSchoolEmis || activeSchool.emisCode}
                         onChange={e => setSelectedSchoolEmis(e.target.value)}
                         className="text-xs bg-emerald-900 border border-emerald-700 text-white rounded-lg py-1.5 px-2.5 pr-7 appearance-none focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer max-w-[210px] truncate"
                       >
-                        {schools.map(s => (
+                        {displayedSwitcherSchools.map(s => (
                           <option key={s.emisCode} value={s.emisCode} className="bg-emerald-950 text-white">
                             {s.emisCode} - {s.name}
                           </option>
@@ -156,6 +207,48 @@ const MainLayout: React.FC = () => {
                     </button>
                   </div>
                 )}
+
+                {/* For School Users: Submission Status & Action Button */}
+                {isSchoolUser && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    {schoolSubmission?.status === 'approved' && (
+                      <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 rounded-lg text-xs font-bold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Approved & Verified</span>
+                      </span>
+                    )}
+                    {(schoolSubmission?.status === 'submitted' || schoolSubmission?.status === 'under_review') && (
+                      <span className="px-2.5 py-1 bg-amber-400/20 text-amber-300 border border-amber-400/40 rounded-lg text-xs font-bold flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Submitted · Under Review</span>
+                      </span>
+                    )}
+                    {schoolSubmission?.status === 'returned' && (
+                      <span className="px-2.5 py-1 bg-rose-500/20 text-rose-300 border border-rose-400/40 rounded-lg text-xs font-bold flex items-center gap-1.5">
+                        <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Returned for Correction</span>
+                      </span>
+                    )}
+                    {!schoolSubmission?.status && (
+                      <span className="px-2 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-medium">
+                        Draft (In Progress)
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setIsSchoolSubmitModalOpen(true)}
+                      className="px-3 py-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                    >
+                      <SendHorizontal className="w-3.5 h-3.5 text-slate-950" />
+                      <span>
+                        {schoolSubmission?.status === 'returned'
+                          ? (isUrdu ? 'درست شدہ کوائف بھیجیں' : 'Resubmit Data')
+                          : (isUrdu ? 'کوائف AEO کو جمع کروائیں' : 'Submit School Data')}
+                      </span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -171,6 +264,7 @@ const MainLayout: React.FC = () => {
             {activeTab === 'schools' && (
               <SchoolsListView
                 onInspectSchool={handleSelectSchoolFromDashboard}
+                onOpenPrintDossier={handleOpenPrintDossier}
               />
             )}
 
@@ -218,6 +312,7 @@ const MainLayout: React.FC = () => {
             {activeTab === 'dashboard' && (
               <SchoolsListView
                 onInspectSchool={handleSelectSchoolFromDashboard}
+                onOpenPrintDossier={handleOpenPrintDossier}
               />
             )}
           </main>
@@ -246,6 +341,20 @@ const MainLayout: React.FC = () => {
         <OfficialDossierPrint
           school={printSchool}
           onClose={() => setPrintDossierSchoolEmis(null)}
+        />
+      )}
+
+      {/* School Quick Submit Modal for School Users */}
+      {isSchoolSubmitModalOpen && activeSchool && (
+        <SchoolQuickSubmitModal
+          school={activeSchool}
+          isOpen={isSchoolSubmitModalOpen}
+          onClose={() => setIsSchoolSubmitModalOpen(false)}
+          onSubmitted={() => {
+            if (activeSchool) {
+              setSelectedSchoolEmis(activeSchool.emisCode);
+            }
+          }}
         />
       )}
 

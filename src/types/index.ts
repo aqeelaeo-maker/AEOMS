@@ -91,6 +91,17 @@ export interface NSBTransaction {
 export interface NSBData {
   schoolEmisCode: string;
   financialYear: string;
+  // Official fields requested by user
+  balanceOn30June2026: number; // Balance on 30-06-2026
+  firstInstallment: number;    // First Installment
+  secondInstallment: number;   // Second Installment
+  thirdInstallment: number;    // Third Installment
+  forthInstallment: number;    // Forth Installment
+  totalIncome: number;         // Total Income = Balance on 30-06-2026 + 1st + 2nd + 3rd + 4th
+  totalExpenditure: number;    // Total Expenditure
+  currentBalance: number;      // Current Balance = Total Income - Total Expenditure
+
+  // Compatibility & quota fields
   openingBalance: number;
   totalAnnualAllocation: number;
   q1Funds: number;
@@ -98,8 +109,7 @@ export interface NSBData {
   q3Funds: number;
   q4Funds: number;
   totalReceived: number;
-  totalExpenditure: number;
-  currentBalance: number;
+
   expendituresByHead: Record<string, number>;
   transactions: NSBTransaction[];
   bankName: string;

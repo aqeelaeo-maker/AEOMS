@@ -28,6 +28,7 @@ import {
   X
 } from 'lucide-react';
 import { SchoolEducationDeptLogo } from '../common/OfficialLogos';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 export const SchoolCredentialsManager: React.FC = () => {
   const { isDyDEO, isAEO, currentUser, allowedSchools } = useAuth();
@@ -36,6 +37,7 @@ export const SchoolCredentialsManager: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [quickResetTargetSchool, setQuickResetTargetSchool] = useState<School | null>(null);
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -115,21 +117,23 @@ export const SchoolCredentialsManager: React.FC = () => {
     setTimeout(() => setNotice(null), 3500);
   };
 
-  const handleQuickReset = async (school: School) => {
-    if (!currentUser) return;
-    const confirm = window.confirm(
-      isUrdu
-        ? `کیا آپ واقعی اس سکول "${school.name}" کا پاس ورڈ واپس ابتدائی عارضی EMIS کوڈ (${school.emisCode}) پر ری سیٹ کرنا چاہتے ہیں؟`
-        : `Reset password for "${school.name}" back to default initial EMIS code (${school.emisCode})?`
-    );
-    if (!confirm) return;
+  const handleExecuteQuickReset = async () => {
+    if (!currentUser || !quickResetTargetSchool) return;
+    const school = quickResetTargetSchool;
 
-    await resetSchoolPasswordToDefault(school.emisCode, currentUser);
+    const success = await resetSchoolPasswordToDefault(school.emisCode, currentUser);
+    if (!success) {
+      setErrorMsg('Failed to reset school password');
+      setQuickResetTargetSchool(null);
+      return;
+    }
+
     setNotice(
       isUrdu
         ? `پاس ورڈ ری سیٹ ہو گیا۔ عارضی پاس ورڈ اب ${school.emisCode} ہے۔`
         : `Password reset to default EMIS code ${school.emisCode}.`
     );
+    setQuickResetTargetSchool(null);
     setTimeout(() => setNotice(null), 3500);
   };
 
@@ -290,8 +294,8 @@ export const SchoolCredentialsManager: React.FC = () => {
 
                           <button
                             type="button"
-                            onClick={() => handleQuickReset(school)}
-                            className="p-1.5 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded-lg transition-colors"
+                            onClick={() => setQuickResetTargetSchool(school)}
+                            className="p-1.5 text-amber-700 hover:text-amber-900 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
                             title={isUrdu ? 'ابتدائی EMIS پاس ورڈ پر ری سیٹ کریں' : 'Reset to Default EMIS Password'}
                           >
                             <RotateCcw className="w-4 h-4" />
@@ -543,6 +547,21 @@ export const SchoolCredentialsManager: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* In-app Quick Password Reset Confirmation Modal */}
+      <ConfirmModal
+        isOpen={quickResetTargetSchool !== null}
+        title={isUrdu ? 'سکول پاس ورڈ ری سیٹ کریں' : 'Reset School Password'}
+        message={
+          isUrdu
+            ? `کیا آپ واقعی اس سکول "${quickResetTargetSchool?.name}" کا پاس ورڈ واپس ابتدائی عارضی EMIS کوڈ (${quickResetTargetSchool?.emisCode}) پر ری سیٹ کرنا چاہتے ہیں؟`
+            : `Reset password for "${quickResetTargetSchool?.name}" back to default initial EMIS code (${quickResetTargetSchool?.emisCode})?`
+        }
+        confirmText={isUrdu ? 'پاس ورڈ ری سیٹ کریں' : 'Reset to EMIS'}
+        cancelText={isUrdu ? 'منسوخ کریں' : 'Cancel'}
+        onConfirm={handleExecuteQuickReset}
+        onCancel={() => setQuickResetTargetSchool(null)}
+      />
     </div>
   );
 };

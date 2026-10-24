@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { saveSchool, resetSchoolPasswordToDefault, getSchoolByEmis } from '../../services/storage';
 import { School as SchoolIcon, Save, KeyRound, Check, ShieldCheck, MapPin, Phone, User } from 'lucide-react';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 interface SchoolProfileViewProps {
   school: School;
@@ -11,18 +12,20 @@ interface SchoolProfileViewProps {
 }
 
 export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ school, onRefresh }) => {
-  const { isAEO, isSupervisor, currentUser } = useAuth();
+  const { isDyDEO, isAEO, isSupervisor, currentUser } = useAuth();
   const { t, isUrdu } = useLanguage();
 
   const [formData, setFormData] = useState<School>(school);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   useEffect(() => {
     setFormData(school);
   }, [school]);
 
-  const canEdit = isAEO || (currentUser?.role === 'school_user' && currentUser.schoolEmisCode === school.emisCode);
+  const canEdit = isDyDEO || isAEO || (currentUser?.role === 'school_user' && currentUser.schoolEmisCode === school.emisCode);
+  const canReset = isDyDEO || isAEO;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,18 +36,12 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ school, on
     if (onRefresh) onRefresh();
   };
 
-  const handleResetPassword = async () => {
-    if (!currentUser || !isAEO) return;
-    const confirmReset = window.confirm(
-      isUrdu
-        ? `کیا آپ واقعی اس سکول (${school.name}) کا پاس ورڈ ری سیٹ کر کے واپس EMIS کوڈ (${school.emisCode}) پر بحال کرنا چاہتے ہیں؟`
-        : `Reset initial password for ${school.name} to default EMIS code (${school.emisCode})? The school head will be forced to set a new password on their next login.`
-    );
-    if (confirmReset) {
-      await resetSchoolPasswordToDefault(school.emisCode, currentUser);
-      setResetSuccess(true);
-      setTimeout(() => setResetSuccess(false), 4000);
-    }
+  const handleExecuteResetPassword = async () => {
+    if (!currentUser || !canReset) return;
+    await resetSchoolPasswordToDefault(school.emisCode, currentUser);
+    setShowResetConfirm(false);
+    setResetSuccess(true);
+    setTimeout(() => setResetSuccess(false), 4000);
   };
 
   return (
@@ -66,11 +63,11 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ school, on
           </div>
         </div>
 
-        {isAEO && (
+        {(isAEO || isDyDEO) && (
           <button
             type="button"
-            onClick={handleResetPassword}
-            className="px-3 py-1.5 text-xs font-medium text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition-colors flex items-center gap-1.5 self-start sm:self-auto"
+            onClick={() => setShowResetConfirm(true)}
+            className="px-3 py-1.5 text-xs font-medium text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition-colors flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
             title="Reset School Password to default EMIS code"
           >
             <KeyRound className="w-3.5 h-3.5 text-amber-700" />
@@ -326,6 +323,21 @@ export const SchoolProfileView: React.FC<SchoolProfileViewProps> = ({ school, on
           </div>
         )}
       </form>
+
+      {/* In-app Password Reset Confirm Modal */}
+      <ConfirmModal
+        isOpen={showResetConfirm}
+        title={isUrdu ? 'پاس ورڈ ری سیٹ کریں' : 'Reset School Password'}
+        message={
+          isUrdu
+            ? `کیا آپ واقعی اس سکول (${school.name}) کا پاس ورڈ ری سیٹ کر کے واپس EMIS کوڈ (${school.emisCode}) پر بحال کرنا چاہتے ہیں؟`
+            : `Reset initial password for ${school.name} to default EMIS code (${school.emisCode})? The school head will be forced to set a new password on their next login.`
+        }
+        confirmText={isUrdu ? 'ری سیٹ کریں' : 'Reset to EMIS'}
+        cancelText={isUrdu ? 'منسوخ کریں' : 'Cancel'}
+        onConfirm={handleExecuteResetPassword}
+        onCancel={() => setShowResetConfirm(false)}
+      />
     </div>
   );
 };

@@ -159,18 +159,38 @@ export const OfficialDossierPrint: React.FC<OfficialDossierPrintProps> = ({ scho
               <div className="font-bold text-slate-900 border-b pb-1 mb-2">
                 Non-Salary Budget (NSB) Statement
               </div>
-              <div className="space-y-1 font-mono">
+              <div className="space-y-1 font-mono text-[11px]">
                 <div className="flex justify-between">
-                  <span className="font-sans text-slate-600">Total Funds Available:</span>
-                  <span className="font-bold">Rs. {nsb?.totalReceived.toLocaleString()}</span>
+                  <span className="font-sans text-slate-600">Balance on 30-06-2026:</span>
+                  <span>Rs. {(nsb?.balanceOn30June2026 ?? nsb?.openingBalance ?? 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="font-sans text-slate-600">Total Expenditures:</span>
+                <div className="flex justify-between text-slate-600">
+                  <span className="font-sans">First Installment:</span>
+                  <span>Rs. {(nsb?.firstInstallment ?? nsb?.q1Funds ?? 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span className="font-sans">Second Installment:</span>
+                  <span>Rs. {(nsb?.secondInstallment ?? nsb?.q2Funds ?? 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span className="font-sans">Third Installment:</span>
+                  <span>Rs. {(nsb?.thirdInstallment ?? nsb?.q3Funds ?? 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-slate-600">
+                  <span className="font-sans">Forth Installment:</span>
+                  <span>Rs. {(nsb?.forthInstallment ?? nsb?.q4Funds ?? 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between font-bold text-slate-900 border-t border-slate-300 pt-1">
+                  <span className="font-sans">Total Income:</span>
+                  <span className="text-emerald-900">Rs. {(nsb?.totalIncome ?? nsb?.totalReceived ?? 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span className="font-sans">Total Expenditure:</span>
                   <span className="font-bold text-rose-800">Rs. {nsb?.totalExpenditure.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between border-t pt-1">
-                  <span className="font-sans text-slate-900 font-bold">Unspent Balance:</span>
-                  <span className="font-bold text-emerald-800">Rs. {nsb?.currentBalance.toLocaleString()}</span>
+                <div className="flex justify-between border-t-2 border-slate-900 pt-1">
+                  <span className="font-sans text-slate-950 font-bold">Current Balance:</span>
+                  <span className="font-black text-emerald-800">Rs. {nsb?.currentBalance.toLocaleString()}</span>
                 </div>
               </div>
             </div>
