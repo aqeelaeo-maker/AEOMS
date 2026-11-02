@@ -132,10 +132,15 @@ export interface FTFTransaction {
 export interface FTFData {
   schoolEmisCode: string;
   financialYear: string;
+  // Official fields requested by user:
+  balanceOn30June2026: number; // Balance on 30-06-2026
+  totalIncome: number;         // Total Income (30-06-2026 to current date)
+  totalExpenditure: number;    // Total Expenditure (30-06-2026 to current date)
+  currentBalance: number;      // Current Balance = Balance on 30-06-2026 + Total Income - Total Expenditure
+
+  // Compatibility & quota fields
   openingBalance: number;
   totalCollected: number;
-  totalExpenditure: number;
-  currentBalance: number;
   bankName: string;
   accountNumber: string;
   committeeMembers: string[];

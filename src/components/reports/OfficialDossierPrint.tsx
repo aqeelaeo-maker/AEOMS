@@ -199,18 +199,22 @@ export const OfficialDossierPrint: React.FC<OfficialDossierPrintProps> = ({ scho
               <div className="font-bold text-slate-900 border-b pb-1 mb-2">
                 Farogh-e-Taleem Fund (FTF) Statement
               </div>
-              <div className="space-y-1 font-mono">
+              <div className="space-y-1 font-mono text-xs">
                 <div className="flex justify-between">
-                  <span className="font-sans text-slate-600">Total Available:</span>
-                  <span className="font-bold">Rs. {ftf ? (ftf.openingBalance + ftf.totalCollected).toLocaleString() : 0}</span>
+                  <span className="font-sans text-slate-600">Balance on 30-06-2026:</span>
+                  <span>Rs. {(ftf?.balanceOn30June2026 ?? ftf?.openingBalance ?? 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="font-sans text-slate-600">Total Spent:</span>
-                  <span className="font-bold text-rose-800">Rs. {ftf?.totalExpenditure.toLocaleString()}</span>
+                  <span className="font-sans text-slate-600">Total Income (30-06-2026 to current date):</span>
+                  <span className="font-bold text-emerald-900">Rs. {(ftf?.totalIncome ?? ftf?.totalCollected ?? 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between border-t pt-1">
-                  <span className="font-sans text-slate-900 font-bold">Current Balance:</span>
-                  <span className="font-bold text-emerald-800">Rs. {ftf?.currentBalance.toLocaleString()}</span>
+                <div className="flex justify-between">
+                  <span className="font-sans text-slate-600">Total Expenditure (30-06-2026 to current date):</span>
+                  <span className="font-bold text-rose-800">Rs. {(ftf?.totalExpenditure ?? 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between border-t-2 border-slate-900 pt-1">
+                  <span className="font-sans text-slate-950 font-bold">Current Balance:</span>
+                  <span className="font-black text-emerald-800">Rs. {(ftf?.currentBalance ?? 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>

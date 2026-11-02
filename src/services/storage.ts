@@ -960,16 +960,57 @@ export function getFTF(schoolEmisCode: string): FTFData {
   initializeStorage();
   try {
     const map = JSON.parse(localStorage.getItem(STORAGE_KEYS.FTF) || '{}');
-    if (map[schoolEmisCode]) return map[schoolEmisCode];
+    if (map[schoolEmisCode]) {
+      const d = map[schoolEmisCode];
+      const balanceOn30June2026 = Number(d.balanceOn30June2026 ?? d.openingBalance ?? 0);
+      let totalIncome = Number(d.totalIncome ?? d.totalCollected ?? 0);
+      let totalExpenditure = Number(d.totalExpenditure ?? 0);
+
+      // Recalculate transaction sums if transactions exist
+      if (Array.isArray(d.transactions) && d.transactions.length > 0) {
+        let txSpent = 0;
+        let txIncome = 0;
+        d.transactions.forEach((tx: FTFTransaction) => {
+          if (tx.type === 'expenditure') txSpent += Number(tx.amount || 0);
+          if (tx.type === 'collection') txIncome += Number(tx.amount || 0);
+        });
+        if (txSpent > 0) totalExpenditure = txSpent;
+        if (txIncome > 0 && totalIncome === 0) totalIncome = txIncome;
+      }
+
+      const currentBalance = balanceOn30June2026 + totalIncome - totalExpenditure;
+
+      return {
+        schoolEmisCode,
+        financialYear: d.financialYear || '2026-2027',
+        balanceOn30June2026,
+        totalIncome,
+        totalExpenditure,
+        currentBalance,
+        openingBalance: balanceOn30June2026,
+        totalCollected: totalIncome,
+        bankName: d.bankName || 'National Bank of Pakistan, Pindi Gheb',
+        accountNumber: d.accountNumber || `FTF-${schoolEmisCode}`,
+        committeeMembers: d.committeeMembers || ['School Head Teacher', 'Parent Representative', 'Senior Teacher'],
+        transactions: d.transactions || [],
+        lastUpdated: d.lastUpdated || new Date().toISOString()
+      };
+    }
   } catch {}
+
+  const defaultBalance30June = 0;
+  const defaultIncome = 0;
+  const defaultExpenditure = 0;
 
   return {
     schoolEmisCode,
     financialYear: '2026-2027',
-    openingBalance: 5000,
-    totalCollected: 12000,
-    totalExpenditure: 4000,
-    currentBalance: 13000,
+    balanceOn30June2026: defaultBalance30June,
+    totalIncome: defaultIncome,
+    totalExpenditure: defaultExpenditure,
+    currentBalance: defaultBalance30June + defaultIncome - defaultExpenditure,
+    openingBalance: defaultBalance30June,
+    totalCollected: defaultIncome,
     bankName: 'National Bank of Pakistan, Pindi Gheb',
     accountNumber: `FTF-${schoolEmisCode}`,
     committeeMembers: ['School Head Teacher', 'Parent Representative', 'Senior Teacher'],
@@ -980,15 +1021,29 @@ export function getFTF(schoolEmisCode: string): FTFData {
 
 export function saveFTF(data: FTFData, user: UserAccount): void {
   const map = JSON.parse(localStorage.getItem(STORAGE_KEYS.FTF) || '{}');
-  let spent = 0;
-  let collected = 0;
-  data.transactions.forEach(tx => {
-    if (tx.type === 'expenditure') spent += Number(tx.amount || 0);
-    if (tx.type === 'collection') collected += Number(tx.amount || 0);
+  
+  let txSpent = 0;
+  let txIncome = 0;
+  (data.transactions || []).forEach(tx => {
+    if (tx.type === 'expenditure') txSpent += Number(tx.amount || 0);
+    if (tx.type === 'collection') txIncome += Number(tx.amount || 0);
   });
-  data.totalExpenditure = spent;
-  data.totalCollected = collected;
-  data.currentBalance = Number(data.openingBalance || 0) + collected - spent;
+
+  const balanceOn30June2026 = Number(data.balanceOn30June2026 ?? data.openingBalance ?? 0);
+  const totalIncome = Number(
+    data.totalIncome !== undefined ? data.totalIncome : (txIncome || data.totalCollected || 0)
+  );
+  const totalExpenditure = Number(txSpent > 0 ? txSpent : (data.totalExpenditure || 0));
+  const currentBalance = balanceOn30June2026 + totalIncome - totalExpenditure;
+
+  data.balanceOn30June2026 = balanceOn30June2026;
+  data.totalIncome = totalIncome;
+  data.totalExpenditure = totalExpenditure;
+  data.currentBalance = currentBalance;
+
+  // Sync legacy compatibility fields
+  data.openingBalance = balanceOn30June2026;
+  data.totalCollected = totalIncome;
   data.lastUpdated = new Date().toISOString();
 
   map[data.schoolEmisCode] = data;
@@ -1001,9 +1056,13 @@ export function saveFTF(data: FTFData, user: UserAccount): void {
     user.role,
     'Update FTF Account',
     'FTF Funds',
-    `FTF Register updated. Net balance: Rs. ${data.currentBalance.toLocaleString()}.`,
+    `Updated FTF for ${data.schoolEmisCode}: Balance on 30-06-2026: Rs. ${balanceOn30June2026.toLocaleString()}, Total Income (30-06-2026 to current date): Rs. ${totalIncome.toLocaleString()}, Total Expenditure (30-06-2026 to current date): Rs. ${totalExpenditure.toLocaleString()}, Current Balance: Rs. ${currentBalance.toLocaleString()}.`,
     data.schoolEmisCode
   );
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('ftf_updated', { detail: { schoolEmisCode: data.schoolEmisCode } }));
+  }
 }
 
 // Facilities & Infrastructure
