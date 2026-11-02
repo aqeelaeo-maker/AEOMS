@@ -93,13 +93,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="flex items-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span className="tracking-wide font-semibold text-emerald-200">
-              {isUrdu ? 'حکومت پنجاب · محکمہ سکول ایجوکیشن' : 'GOVERNMENT OF THE PUNJAB · SCHOOL EDUCATION DEPARTMENT'}
+              {isUrdu ? 'حکومت پنجاب' : 'Government of the Punjab'}
             </span>
-            <span className="text-emerald-500/80">/</span>
-            <span className="text-emerald-300 hidden sm:inline">
-              {isDyDEO
-                ? (isUrdu ? 'دفتر ڈپٹی ڈسٹرکٹ ایجوکیشن آفیسر (Dy. DEO) پنڈی گھیب' : 'Office of Deputy District Education Officer (Dy. DEO) Pindi Gheb')
-                : (isUrdu ? 'دفتر معاون تعلیمی افسر (AEO) تحصیل پنڈی گھیب، ضلع اٹک' : 'Office of the Assistant Education Officer (AEO), Tehsil Pindi Gheb, District Attock')}
+            <span className="text-emerald-500/80">·</span>
+            <span className="text-emerald-300 font-mono text-[11px] hidden sm:inline">
+              {isUrdu ? 'تعلیمی سیشن 2026-27' : 'Academic Session 2026-27'}
             </span>
           </div>
 
@@ -160,17 +158,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="flex items-center gap-2">
                     <h1 className="text-sm sm:text-base font-extrabold text-white tracking-tight leading-snug group-hover:text-emerald-200 transition-colors">
                       {isDyDEO
-                        ? (isUrdu ? 'دفتر ڈپٹی ڈسٹرکٹ ایجوکیشن آفیسر (Dy. DEO)' : 'Office of Dy. DEO Pindi Gheb')
-                        : (isUrdu ? 'دفتر اسسٹنٹ ایجوکیشن آفیسر (AEO)' : 'Office of AEO Pindi Gheb')}
+                        ? (isUrdu ? 'ڈپٹی ڈسٹرکٹ ایجوکیشن آفس (W-EE) پنڈی گھیب' : 'Deputy District Education Office (W-EE) Pindi Gheb')
+                        : (isUrdu ? 'دفتر اسسٹنٹ ایجوکیشن آفیسر (AEO) پنڈی گھیب' : 'Office of Assistant Education Officer (AEO) Pindi Gheb')}
                     </h1>
                     <span className="hidden sm:inline px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-slate-950 uppercase tracking-wide">
-                      {isDyDEO ? 'Dy. DEO Super Admin' : isAEO ? 'AEO Admin' : 'Official'}
+                      {isDyDEO ? 'Dy. DEO' : isAEO ? 'AEO Admin' : 'Official'}
                     </span>
                   </div>
                   <p className="text-[11px] text-emerald-200/90 hidden sm:block">
                     {isUrdu
-                      ? 'حکومت پنجاب · محکمہ سکول ایجوکیشن · تحصیل پنڈی گھیب، ضلع اٹک'
-                      : 'Govt. of the Punjab · School Education Dept · Tehsil Pindi Gheb, District Attock'}
+                      ? 'محکمہ سکول ایجوکیشن · تحصیل پنڈی گھیب، ضلع اٹک'
+                      : 'School Education Department · Tehsil Pindi Gheb, District Attock'}
                   </p>
                 </div>
               </button>

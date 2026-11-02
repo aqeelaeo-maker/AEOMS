@@ -30,7 +30,11 @@ import {
 import { SchoolEducationDeptLogo } from '../common/OfficialLogos';
 import { ConfirmModal } from '../common/ConfirmModal';
 
-export const SchoolCredentialsManager: React.FC = () => {
+interface SchoolCredentialsManagerProps {
+  hideTopBanner?: boolean;
+}
+
+export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> = ({ hideTopBanner = false }) => {
   const { isDyDEO, isAEO, currentUser, allowedSchools } = useAuth();
   const { isUrdu } = useLanguage();
 
@@ -146,36 +150,38 @@ export const SchoolCredentialsManager: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Directive Banner */}
-      <div className="bg-emerald-900 text-white rounded-xl p-5 sm:p-6 border border-emerald-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-start gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-emerald-800 text-white flex items-center justify-center shrink-0 border border-emerald-600 font-bold">
-            <KeyRound className="w-6 h-6 text-amber-300" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs uppercase font-bold tracking-wider text-emerald-200">
-                {isUrdu ? 'مجاز اتھارٹی: معاون تعلیمی افسر (AEO)' : 'Authorized Authority: AEO of the Markaz'}
-              </span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-800 text-amber-200 font-bold">
-                {currentUser?.assignedMarkaz ? `Markaz: ${currentUser.assignedMarkaz}` : 'Markaz Jurisdiction'}
-              </span>
+      {/* Top Directive Banner (only if not compact/inside hub) */}
+      {!hideTopBanner && (
+        <div className="bg-emerald-900 text-white rounded-xl p-5 sm:p-6 border border-emerald-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-emerald-800 text-white flex items-center justify-center shrink-0 border border-emerald-600 font-bold">
+              <KeyRound className="w-6 h-6 text-amber-300" />
             </div>
-            <h2 className="text-lg font-bold text-white mt-1">
-              {isUrdu ? 'سکولوں کے لاگ ان اسناد اور پاس ورڈ مینجمنٹ' : 'School Credentials & Password Provisioning'}
-            </h2>
-            <p className="text-xs text-emerald-200/90 mt-0.5">
-              {isUrdu
-                ? `مرکز ${currentUser?.assignedMarkaz || ''} کے تمام سکولوں کے لاگ ان اسناد اسی مرکز کے اے ای او کے ذریعے جاری اور تبدیل کیے جاتے ہیں۔`
-                : `Login credentials for each school in Markaz ${currentUser?.assignedMarkaz || ''} are issued and configured by the respective AEO.`}
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase font-bold tracking-wider text-emerald-200">
+                  {isUrdu ? 'مجاز اتھارٹی: معاون تعلیمی افسر (AEO)' : 'Authorized Authority: AEO of the Markaz'}
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-800 text-amber-200 font-bold">
+                  {currentUser?.assignedMarkaz ? `Markaz: ${currentUser.assignedMarkaz}` : 'Markaz Jurisdiction'}
+                </span>
+              </div>
+              <h2 className="text-lg font-bold text-white mt-1">
+                {isUrdu ? 'سکولوں کے لاگ ان اسناد اور پاس ورڈ مینجمنٹ' : 'School Credentials & Password Provisioning'}
+              </h2>
+              <p className="text-xs text-emerald-200/90 mt-0.5">
+                {isUrdu
+                  ? `مرکز ${currentUser?.assignedMarkaz || ''} کے تمام سکولوں کے لاگ ان اسناد اسی مرکز کے اے ای او کے ذریعے جاری اور تبدیل کیے جاتے ہیں۔`
+                  : `Login credentials for each school in Markaz ${currentUser?.assignedMarkaz || ''} are issued and configured by the respective AEO.`}
+              </p>
+            </div>
+          </div>
+
+          <div className="px-3 py-2 bg-emerald-950/70 border border-emerald-700/80 rounded-lg text-xs font-mono text-emerald-200 shrink-0">
+            <span>{filteredSchools.length} {isUrdu ? 'سکولز زیرِ انتظام' : 'Markaz Schools'}</span>
           </div>
         </div>
-
-        <div className="px-3 py-2 bg-emerald-950/70 border border-emerald-700/80 rounded-lg text-xs font-mono text-emerald-200 shrink-0">
-          <span>{filteredSchools.length} {isUrdu ? 'سکولز زیرِ انتظام' : 'Markaz Schools'}</span>
-        </div>
-      </div>
+      )}
 
       {notice && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-semibold flex items-center gap-2 animate-fadeIn">

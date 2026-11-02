@@ -22,7 +22,7 @@ import { AeoCredentialsManager } from './components/auth/AeoCredentialsManager';
 import { SchoolCredentialsManager } from './components/auth/SchoolCredentialsManager';
 import { CredentialsManagementHub } from './components/auth/CredentialsManagementHub';
 import { SchoolEducationDeptLogo } from './components/common/OfficialLogos';
-import { getSchools, getSubmissions, getSchoolByEmis, getSubmissionBySchool } from './services/storage';
+import { getSchools, getAeoAccounts, getSubmissions, getSchoolByEmis, getSubmissionBySchool } from './services/storage';
 import { SchoolQuickSubmitModal } from './components/school/SchoolQuickSubmitModal';
 import {
   School as SchoolIcon,
@@ -67,8 +67,10 @@ const MainLayout: React.FC = () => {
   ).length;
 
   const allMarkazOptions = React.useMemo(() => {
-    return Array.from(new Set(getSchools().map(s => s.markaz))).filter(Boolean);
-  }, []);
+    const aeoMarakiz = getAeoAccounts().map(a => a.assignedMarkaz).filter(Boolean) as string[];
+    const schoolMarakiz = getSchools().map(s => s.markaz).filter(Boolean);
+    return Array.from(new Set([...aeoMarakiz, ...schoolMarakiz]));
+  }, [schools]);
 
   const displayedSwitcherSchools = isDyDEO && topMarkazFilter !== 'all'
     ? schools.filter(s => s.markaz === topMarkazFilter)
@@ -94,7 +96,6 @@ const MainLayout: React.FC = () => {
   const printSchool = printDossierSchoolEmis ? getSchoolByEmis(printDossierSchoolEmis) || null : null;
 
   const isSchoolModule = [
-    'schools',
     'enrollment',
     'nsb',
     'ftf',
@@ -266,6 +267,28 @@ const MainLayout: React.FC = () => {
                 onInspectSchool={handleSelectSchoolFromDashboard}
                 onOpenPrintDossier={handleOpenPrintDossier}
               />
+            )}
+
+            {/* Empty School State for School Modules when 0 schools exist */}
+            {['enrollment', 'nsb', 'ftf', 'facilities', 'staff'].includes(activeTab) && !activeSchool && (
+              <div className="bg-white rounded-2xl p-10 border border-slate-200 text-center max-w-lg mx-auto shadow-sm my-8">
+                <SchoolIcon className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
+                <h3 className="text-base font-bold text-slate-800">
+                  {isUrdu ? 'کوئی سکول موجود نہیں ہے' : 'No Schools Registered Yet'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                  {isUrdu
+                    ? 'کوائف کے اندراج اور جانچ پڑتال کیلئے پہلے متعلقہ مرکز کے تحت سکول شامل کریں۔'
+                    : 'To inspect and record data, schools must first be added by their respective Markaz AEO.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('schools')}
+                  className="mt-4 px-4 py-2 bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                >
+                  {isUrdu ? 'سکولز لسٹ پر جائیں' : 'Go to Schools Information'}
+                </button>
+              </div>
             )}
 
             {/* 3. Enrollment and Attendance View */}

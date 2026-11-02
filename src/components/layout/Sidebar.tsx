@@ -15,7 +15,6 @@ import { SchoolEducationDeptLogo } from '../common/OfficialLogos';
 
 interface NavTab {
   id: string;
-  number: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   roles: string[];
@@ -48,60 +47,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const currentRole = currentUser?.role || (currentUser?.email === 'dydeowpindigheb@gmail.com' ? 'dy_deo' : 'aeo_admin');
 
   // ONLY the specified tabs for Deputy District Education Officer & Authorized Officers:
-  // 1. Credentials
-  // 2. Schools Information
-  // 3. Enrollment
-  // 4. NSB Funds and Expenditures
-  // 5. FTF Collection and Expenditures
-  // 6. Building and Facilities
-  // 7. Staff Information
-  // All remaining tabs removed from left pan.
+  // Credentials, Schools Information, Enrollment, NSB Funds and Expenditures, FTF Collection and Expenditures, Building and Facilities, Staff Information.
   const officialTabs: NavTab[] = [
     {
       id: 'credentials',
-      number: '1',
       label: isUrdu ? 'سرکاری اسناد و پاس ورڈز' : 'Credentials',
       icon: KeyRound,
       roles: ['dy_deo', 'aeo_admin']
     },
     {
       id: 'schools',
-      number: '2',
       label: isUrdu ? 'سکولز کی معلومات' : 'Schools Information',
       icon: School,
       roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
     },
     {
       id: 'enrollment',
-      number: '3',
       label: isUrdu ? 'داخلہ اور حاضری' : 'Enrollment',
       icon: Users,
       roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
     },
     {
       id: 'nsb',
-      number: '4',
       label: isUrdu ? 'نان سیلری بجٹ و اخراجات' : 'NSB Funds and Expenditures',
       icon: Coins,
       roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
     },
     {
       id: 'ftf',
-      number: '5',
       label: isUrdu ? 'فروغِ تعلیم فنڈ و اخراجات' : 'FTF Collection and Expenditures',
       icon: Receipt,
       roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
     },
     {
       id: 'facilities',
-      number: '6',
       label: isUrdu ? 'عمارات اور سہولیات' : 'Building and Facilities',
       icon: Building2,
       roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
     },
     {
       id: 'staff',
-      number: '7',
       label: isUrdu ? 'اساتذہ و عملہ کی معلومات' : 'Staff Information',
       icon: GraduationCap,
       roles: ['dy_deo', 'aeo_admin', 'supervisor', 'school_user']
@@ -162,16 +147,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Official Navigation Section Title */}
-        <div className="px-4 pt-4 pb-1 flex items-center justify-between">
+        <div className="px-4 pt-4 pb-1">
           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
             {isUrdu ? 'سرکاری ماڈیولز و اختیارات' : 'Official Modules'}
           </span>
-          <span className="text-[10px] font-mono text-emerald-500 font-semibold">
-            {visibleTabs.length} Tabs
-          </span>
         </div>
 
-        {/* Scrollable Navigation Items (Exact 7 Tabs, All others removed) */}
+        {/* Scrollable Navigation Items */}
         <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
           {visibleTabs.map((tab) => {
             const Icon = tab.icon;
@@ -192,15 +174,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span
-                    className={`w-5 h-5 rounded-md flex items-center justify-center text-[11px] font-mono font-bold shrink-0 ${
-                      isActive
-                        ? 'bg-amber-400 text-slate-950 shadow-xs'
-                        : 'bg-emerald-900/80 text-emerald-300 group-hover:bg-emerald-800 group-hover:text-white'
-                    }`}
-                  >
-                    {tab.number}
-                  </span>
                   <Icon
                     className={`w-4 h-4 shrink-0 transition-colors ${
                       isActive ? 'text-amber-300' : 'text-emerald-300 group-hover:text-white'

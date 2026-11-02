@@ -332,7 +332,14 @@ export const AeoDashboard: React.FC<AeoDashboardProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredSchools.map(school => {
+              {filteredSchools.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-slate-400">
+                    {isUrdu ? 'کوئی سکول موجود نہیں ہے۔' : 'No schools registered yet.'}
+                  </td>
+                </tr>
+              ) : (
+                filteredSchools.map(school => {
                 const enr = getEnrollment(school.emisCode);
                 const nsb = getNSB(school.emisCode);
                 const fac = getFacilities(school.emisCode);
@@ -431,7 +438,7 @@ export const AeoDashboard: React.FC<AeoDashboardProps> = ({
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>

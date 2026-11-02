@@ -32,7 +32,11 @@ import {
   Check
 } from 'lucide-react';
 
-export const AeoCredentialsManager: React.FC = () => {
+interface AeoCredentialsManagerProps {
+  hideTopBanner?: boolean;
+}
+
+export const AeoCredentialsManager: React.FC<AeoCredentialsManagerProps> = ({ hideTopBanner = false }) => {
   const { isDyDEO, currentUser } = useAuth();
   const { isUrdu } = useLanguage();
 
@@ -53,7 +57,7 @@ export const AeoCredentialsManager: React.FC = () => {
     id: '',
     cnic: '',
     displayName: '',
-    assignedMarkaz: 'Pindi Gheb City',
+    assignedMarkaz: '',
     email: '',
     phone: '',
     passwordPlain: ''
@@ -75,8 +79,11 @@ export const AeoCredentialsManager: React.FC = () => {
   }, []);
 
   const markazOptions = Array.from(
-    new Set([...getSchools().map(s => s.markaz), 'Pindi Gheb City', 'Khaur', 'Malhuwali', 'Ikhlas'])
-  ).filter(Boolean);
+    new Set([
+      ...aeoList.map(a => a.assignedMarkaz).filter(Boolean),
+      ...getSchools().map(s => s.markaz).filter(Boolean)
+    ])
+  ) as string[];
 
   const handleOpenAdd = () => {
     setIsEditing(false);
@@ -84,7 +91,7 @@ export const AeoCredentialsManager: React.FC = () => {
       id: '',
       cnic: '',
       displayName: '',
-      assignedMarkaz: markazOptions[0] || 'Pindi Gheb City',
+      assignedMarkaz: '',
       email: '',
       phone: '',
       passwordPlain: ''
@@ -99,7 +106,7 @@ export const AeoCredentialsManager: React.FC = () => {
       id: aeo.id,
       cnic: aeo.cnic || aeo.username,
       displayName: aeo.displayName,
-      assignedMarkaz: aeo.assignedMarkaz || 'Pindi Gheb City',
+      assignedMarkaz: aeo.assignedMarkaz || '',
       email: aeo.email || '',
       phone: aeo.phone || '',
       passwordPlain: ''
@@ -197,42 +204,56 @@ export const AeoCredentialsManager: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Banner with Dy. DEO Authority Badge */}
-      <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white p-5 rounded-2xl shadow-sm border border-emerald-700/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-xl shadow-md shrink-0">
-            <Shield className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-amber-200 bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-700/70">
-                {isUrdu ? 'ڈپٹی ڈسٹرکٹ ایجوکیشن آفیسر (Dy. DEO) کنٹرول' : 'Dy. DEO Command & Control'}
-              </span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-800 text-emerald-200">
-                dydeowpindigheb@gmail.com
-              </span>
+      {/* Top Banner with Dy. DEO Authority Badge (only if not compact/inside hub) */}
+      {!hideTopBanner ? (
+        <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white p-5 rounded-2xl shadow-sm border border-emerald-700/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black text-xl shadow-md shrink-0">
+              <Shield className="w-6 h-6" />
             </div>
-            <h2 className="text-lg font-bold text-white mt-1">
-              {isUrdu ? 'اسسٹنٹ ایجوکیشن آفیسرز (AEOs) مکمل ریکارڈ و انتظام' : 'Assistant Education Officers (AEO) Directory & CRUD'}
-            </h2>
-            <p className="text-xs text-emerald-200/90 mt-0.5">
-              {isUrdu
-                ? 'ڈپٹی ڈی ای او تمام اے ای اوز کے ریکارڈ کا اندراج، تبدیلی، پاس ورڈ ری سیٹ اور نگرانی کر سکتے ہیں۔'
-                : 'Deputy District Education Officer can view, add, edit, reset passwords, and revoke AEO accounts.'}
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-amber-200 bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-700/70">
+                  {isUrdu ? 'ڈپٹی ڈسٹرکٹ ایجوکیشن آفیسر (Dy. DEO) کنٹرول' : 'Dy. DEO Command & Control'}
+                </span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-800 text-emerald-200">
+                  dydeowpindigheb@gmail.com
+                </span>
+              </div>
+              <h2 className="text-lg font-bold text-white mt-1">
+                {isUrdu ? 'اسسٹنٹ ایجوکیشن آفیسرز (AEOs) مکمل ریکارڈ و انتظام' : 'Assistant Education Officers (AEO) Directory & CRUD'}
+              </h2>
+              <p className="text-xs text-emerald-200/90 mt-0.5">
+                {isUrdu
+                  ? 'ڈپٹی ڈی ای او تمام اے ای اوز کے ریکارڈ کا اندراج، تبدیلی، پاس ورڈ ری سیٹ اور نگرانی کر سکتے ہیں۔'
+                  : 'Deputy District Education Officer can view, add, edit, reset passwords, and revoke AEO accounts.'}
+              </p>
+            </div>
           </div>
-        </div>
 
-        {isDyDEO && (
-          <button
-            onClick={handleOpenAdd}
-            className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-colors flex items-center gap-2 shrink-0 self-start md:self-auto cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4 text-slate-950" />
-            <span>{isUrdu ? 'نیا اے ای او شامل کریں' : '+ Add New AEO'}</span>
-          </button>
-        )}
-      </div>
+          {isDyDEO && (
+            <button
+              onClick={handleOpenAdd}
+              className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-md transition-colors flex items-center gap-2 shrink-0 self-start md:self-auto cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4 text-slate-950" />
+              <span>{isUrdu ? 'نیا اے ای او شامل کریں' : '+ Add New AEO'}</span>
+            </button>
+          )}
+        </div>
+      ) : (
+        isDyDEO && (
+          <div className="flex justify-end">
+            <button
+              onClick={handleOpenAdd}
+              className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4 text-slate-950" />
+              <span>{isUrdu ? 'نیا اے ای او شامل کریں' : '+ Add New AEO'}</span>
+            </button>
+          </div>
+        )
+      )}
 
       {notice && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in">
@@ -338,8 +359,26 @@ export const AeoCredentialsManager: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {filteredAeos.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-500 text-xs">
-                    {isUrdu ? 'کوئی اے ای او اکاؤنٹ نہیں ملا۔' : 'No AEO accounts found.'}
+                  <td colSpan={6} className="py-12 text-center text-slate-500">
+                    <Shield className="w-10 h-10 text-emerald-400 mx-auto mb-2 opacity-80" />
+                    <div className="font-bold text-slate-800 text-sm">
+                      {isUrdu ? 'کوئی اے ای او رجسٹرڈ نہیں ہے' : 'No AEO Officers Registered Yet'}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                      {isUrdu
+                        ? 'ڈپٹی ڈی ای او (ایڈمن) یہاں نیا اے ای او شامل کر کے ان کا مرکز تفویض کریں گے۔ ہر اے ای او اپنے CNIC کے ذریعے لاگ ان کر کے اپنے مرکز کے سکولز شامل کرے گا۔'
+                        : 'Admin will add AEOs and assign their Marakiz. Each AEO will then log in with their CNIC to add and manage their schools.'}
+                    </p>
+                    {isDyDEO && (
+                      <button
+                        type="button"
+                        onClick={handleOpenAdd}
+                        className="mt-4 px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        <span>{isUrdu ? 'نیا اے ای او شامل کریں' : '+ Add First AEO'}</span>
+                      </button>
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -532,17 +571,25 @@ export const AeoCredentialsManager: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     {isUrdu ? 'تفویض شدہ مرکز' : 'Assigned Markaz'} *
                   </label>
-                  <select
+                  <input
+                    type="text"
+                    required
+                    list="aeo-markaz-options"
                     value={formData.assignedMarkaz}
                     onChange={e => setFormData({ ...formData, assignedMarkaz: e.target.value })}
+                    placeholder={isUrdu ? 'مرکز کا نام درج کریں (مثلاً Pindi Gheb City)' : 'e.g. Pindi Gheb City, Khaur, Malhuwali...'}
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white"
-                  >
-                    {markazOptions.map(m => (
-                      <option key={m} value={m}>
-                        Markaz {m}
-                      </option>
-                    ))}
-                  </select>
+                  />
+                  {markazOptions.length > 0 && (
+                    <datalist id="aeo-markaz-options">
+                      {markazOptions.map(m => (
+                        <option key={m} value={m} />
+                      ))}
+                    </datalist>
+                  )}
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    {isUrdu ? 'مرکز کا نام درج کریں جس کے تحت یہ اے ای او سکولز شامل کرے گا۔' : 'AEO will oversee and add schools to this Markaz.'}
+                  </div>
                 </div>
               </div>
 

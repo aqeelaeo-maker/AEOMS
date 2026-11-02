@@ -31,107 +31,79 @@ import { db, doc, handleFirestoreError, OperationType } from '../firebase/config
 import { setDoc, getDoc, deleteDoc } from 'firebase/firestore';
 
 export const STORAGE_KEYS = {
-  SCHOOLS: 'aeo_schools_v1',
-  USERS: 'aeo_users_v1',
-  ENROLLMENT: 'aeo_enrollment_v1',
-  NSB: 'aeo_nsb_v1',
-  FTF: 'aeo_ftf_v1',
-  FACILITIES: 'aeo_facilities_v1',
-  STAFF: 'aeo_staff_v1',
-  DOCUMENTS: 'aeo_documents_v1',
-  SUBMISSIONS: 'aeo_submissions_v1',
-  AUDIT_LOGS: 'aeo_audit_logs_v1'
+  CLEAN_INITIALIZED: 'aeo_clean_fresh_start_v3',
+  SCHOOLS: 'aeo_schools_v3',
+  USERS: 'aeo_users_v3',
+  ENROLLMENT: 'aeo_enrollment_v3',
+  NSB: 'aeo_nsb_v3',
+  FTF: 'aeo_ftf_v3',
+  FACILITIES: 'aeo_facilities_v3',
+  STAFF: 'aeo_staff_v3',
+  DOCUMENTS: 'aeo_documents_v3',
+  SUBMISSIONS: 'aeo_submissions_v3',
+  AUDIT_LOGS: 'aeo_audit_logs_v3'
 };
 
 // Initialize persistent state if not already populated
 export function initializeStorage(): void {
+  // If fresh clean start not initialized, purge all old mock schools/AEOs
+  if (localStorage.getItem(STORAGE_KEYS.CLEAN_INITIALIZED) !== 'true') {
+    // Purge old mock keys if any
+    localStorage.removeItem('aeo_schools_v1');
+    localStorage.removeItem('aeo_users_v1');
+    localStorage.removeItem('aeo_enrollment_v1');
+    localStorage.removeItem('aeo_nsb_v1');
+    localStorage.removeItem('aeo_ftf_v1');
+    localStorage.removeItem('aeo_facilities_v1');
+    localStorage.removeItem('aeo_staff_v1');
+    localStorage.removeItem('aeo_documents_v1');
+    localStorage.removeItem('aeo_submissions_v1');
+    localStorage.removeItem('aeo_audit_logs_v1');
+    localStorage.removeItem('selected_school_emis');
+
+    localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(initialUsers)); // Only Admin!
+    localStorage.setItem(STORAGE_KEYS.ENROLLMENT, JSON.stringify({}));
+    localStorage.setItem(STORAGE_KEYS.NSB, JSON.stringify({}));
+    localStorage.setItem(STORAGE_KEYS.FTF, JSON.stringify({}));
+    localStorage.setItem(STORAGE_KEYS.FACILITIES, JSON.stringify({}));
+    localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify({}));
+    localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify({}));
+    localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.CLEAN_INITIALIZED, 'true');
+    return;
+  }
+
   if (!localStorage.getItem(STORAGE_KEYS.SCHOOLS)) {
-    localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(initialSchools));
+    localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify([]));
   }
   if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(initialUsers));
-  } else {
-    // Ensure Dy. DEO (Admin/admin) and markaz-assigned AEO accounts (CNIC/CNIC) are synced
-    try {
-      const storedUsers: UserAccount[] = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
-      const merged = [...storedUsers];
-      for (const iu of initialUsers) {
-        const existingIdx = merged.findIndex(
-          u =>
-            u.id === iu.id ||
-            u.username.toLowerCase() === iu.username.toLowerCase() ||
-            (iu.email && u.email?.toLowerCase() === iu.email.toLowerCase()) ||
-            (iu.assignedMarkaz && u.assignedMarkaz === iu.assignedMarkaz)
-        );
-        if (existingIdx >= 0) {
-          merged[existingIdx] = {
-            ...merged[existingIdx],
-            username: iu.username,
-            role: iu.role,
-            displayName: iu.displayName,
-            cnic: iu.cnic || merged[existingIdx].cnic,
-            assignedMarkaz: iu.assignedMarkaz || merged[existingIdx].assignedMarkaz,
-            email: iu.email || merged[existingIdx].email,
-            passwordHash: merged[existingIdx].passwordHash || iu.passwordHash
-          };
-        } else {
-          merged.push(iu);
-        }
-      }
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(merged));
-    } catch {
-      // fallback
-    }
   }
   if (!localStorage.getItem(STORAGE_KEYS.ENROLLMENT)) {
-    localStorage.setItem(STORAGE_KEYS.ENROLLMENT, JSON.stringify(initialEnrollment));
+    localStorage.setItem(STORAGE_KEYS.ENROLLMENT, JSON.stringify({}));
   }
   if (!localStorage.getItem(STORAGE_KEYS.NSB)) {
-    localStorage.setItem(STORAGE_KEYS.NSB, JSON.stringify(initialNSB));
-  } else {
-    try {
-      const storedNsb = JSON.parse(localStorage.getItem(STORAGE_KEYS.NSB) || '{}');
-      let changed = false;
-      for (const emis of Object.keys(storedNsb)) {
-        const item = storedNsb[emis];
-        if (item && item.balanceOn30June2026 === undefined) {
-          item.balanceOn30June2026 = Number(item.openingBalance ?? 0);
-          item.firstInstallment = Number(item.q1Funds ?? 0);
-          item.secondInstallment = Number(item.q2Funds ?? 0);
-          item.thirdInstallment = Number(item.q3Funds ?? 0);
-          item.forthInstallment = Number(item.q4Funds ?? 0);
-          item.totalIncome =
-            item.balanceOn30June2026 +
-            item.firstInstallment +
-            item.secondInstallment +
-            item.thirdInstallment +
-            item.forthInstallment;
-          item.currentBalance = item.totalIncome - Number(item.totalExpenditure ?? 0);
-          changed = true;
-        }
-      }
-      if (changed) {
-        localStorage.setItem(STORAGE_KEYS.NSB, JSON.stringify(storedNsb));
-      }
-    } catch {}
+    localStorage.setItem(STORAGE_KEYS.NSB, JSON.stringify({}));
   }
   if (!localStorage.getItem(STORAGE_KEYS.FTF)) {
-    localStorage.setItem(STORAGE_KEYS.FTF, JSON.stringify(initialFTF));
+    localStorage.setItem(STORAGE_KEYS.FTF, JSON.stringify({}));
   }
   if (!localStorage.getItem(STORAGE_KEYS.FACILITIES)) {
-    localStorage.setItem(STORAGE_KEYS.FACILITIES, JSON.stringify(initialFacilities));
+    localStorage.setItem(STORAGE_KEYS.FACILITIES, JSON.stringify({}));
   }
   if (!localStorage.getItem(STORAGE_KEYS.STAFF)) {
-    localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(initialStaff));
+    localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify({}));
   }
   if (!localStorage.getItem(STORAGE_KEYS.DOCUMENTS)) {
-    localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(initialDocuments));
+    localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify({}));
   }
   if (!localStorage.getItem(STORAGE_KEYS.SUBMISSIONS)) {
-    localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify(initialSubmissions));
+    localStorage.setItem(STORAGE_KEYS.SUBMISSIONS, JSON.stringify([]));
   }
   if (!localStorage.getItem(STORAGE_KEYS.AUDIT_LOGS)) {
-    localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(initialAuditLogs));
+    localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify([]));
   }
 }
 

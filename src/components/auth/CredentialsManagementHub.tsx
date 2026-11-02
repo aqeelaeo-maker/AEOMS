@@ -71,7 +71,7 @@ export const CredentialsManagementHub: React.FC = () => {
             }`}
           >
             <Shield className="w-4 h-4" />
-            <span>{isUrdu ? '1. اے ای اوز اسناد (CRUD)' : '1. AEO Credentials (CRUD)'}</span>
+            <span>{isUrdu ? 'اے ای اوز اسناد (CRUD)' : 'AEO Credentials (CRUD)'}</span>
           </button>
           <button
             type="button"
@@ -83,16 +83,16 @@ export const CredentialsManagementHub: React.FC = () => {
             }`}
           >
             <School className="w-4 h-4" />
-            <span>{isUrdu ? '2. سکول اسناد و پاس ورڈز' : '2. School Credentials & Passwords'}</span>
+            <span>{isUrdu ? 'سکول اسناد و پاس ورڈز' : 'School Credentials & Passwords'}</span>
           </button>
         </div>
       </div>
 
       {/* Render selected manager */}
       {activeSubTab === 'aeo' ? (
-        <AeoCredentialsManager />
+        <AeoCredentialsManager hideTopBanner={true} />
       ) : (
-        <SchoolCredentialsManager />
+        <SchoolCredentialsManager hideTopBanner={true} />
       )}
     </div>
   );

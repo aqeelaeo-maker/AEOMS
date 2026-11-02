@@ -5,6 +5,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import {
   getSchools,
   getSchoolsForUser,
+  getAeoAccounts,
   saveSchool,
   deleteSchool,
   resetSchoolPasswordToDefault,
@@ -87,7 +88,7 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({
     gender: 'Boys',
     district: 'Attock',
     tehsil: 'Pindi Gheb',
-    markaz: currentUser?.assignedMarkaz || 'Pindi Gheb City',
+    markaz: currentUser?.assignedMarkaz || '',
     unionCouncil: '',
     address: '',
     addressUrdu: '',
@@ -95,7 +96,7 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({
     headTeacherCnic: '',
     headTeacherPhone: '',
     shift: 'Morning',
-    establishmentYear: '2000',
+    establishmentYear: new Date().getFullYear().toString(),
     status: 'active'
   });
 
@@ -119,9 +120,11 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({
     };
   }, [currentUser]);
 
-  // Extract all Markazes dynamically from existing schools
+  // Extract all Markazes dynamically from both registered AEOs and existing schools
   const allMasterSchools = getSchools();
-  const markazOptions = Array.from(new Set(allMasterSchools.map(s => s.markaz))).filter(Boolean);
+  const aeoMarkazes = getAeoAccounts().map(a => a.assignedMarkaz).filter(Boolean) as string[];
+  const schoolMarkazes = allMasterSchools.map(s => s.markaz).filter(Boolean);
+  const markazOptions = Array.from(new Set([...aeoMarkazes, ...schoolMarkazes]));
 
   // For AEO, base list is locked to their assignedMarkaz
   const baseSchools = isAEO && currentUser?.assignedMarkaz
@@ -202,7 +205,7 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({
       gender: 'Boys',
       district: 'Attock',
       tehsil: 'Pindi Gheb',
-      markaz: currentUser?.assignedMarkaz || (markazFilter !== 'all' ? markazFilter : 'Pindi Gheb City'),
+      markaz: currentUser?.assignedMarkaz || (markazFilter !== 'all' ? markazFilter : (markazOptions[0] || '')),
       unionCouncil: '',
       address: '',
       addressUrdu: '',
@@ -301,26 +304,19 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({
                 <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-300">
                   {isDyDEO
-                    ? (isUrdu ? 'ڈپٹی ڈی ای او نگرانی · تحصیل پنڈی گھیب' : 'Deputy DEO Supervision · Tehsil Pindi Gheb')
+                    ? (isUrdu ? 'ڈپٹی ڈی ای او نگرانی · تحصیل پنڈی گھیب' : 'Deputy DEO Supervision')
                     : isAEO
-                    ? (isUrdu ? `معاون تعلیمی افسر (AEO) · مرکز ${currentUser?.assignedMarkaz || ''}` : `Assistant Education Officer (AEO) · Markaz ${currentUser?.assignedMarkaz || ''}`)
-                    : (isUrdu ? 'سکول انتظامی پورٹل' : 'School Administrative Portal')}
+                    ? (isUrdu ? `معاون تعلیمی افسر · مرکز ${currentUser?.assignedMarkaz || ''}` : `AEO · Markaz ${currentUser?.assignedMarkaz || ''}`)
+                    : (isUrdu ? 'سکول پورٹل' : 'School Portal')}
                 </span>
               </div>
               <h2 className="text-xl font-bold text-white mt-1">
                 {isDyDEO
-                  ? (isUrdu ? 'سکولز ریکارڈز و ڈیٹا نگران ڈائرکٹری (تمام مراکز)' : 'Schools Data Directory & Submission Management')
+                  ? (isUrdu ? 'سکولز ریکارڈز و ڈیٹا نگران ڈائرکٹری' : 'Schools Data Directory & Management')
                   : isAEO
-                  ? (isUrdu ? `مرکز ${currentUser?.assignedMarkaz || 'پنڈی گھیب'} کے تمام سکولز کا ڈیٹا` : `All Schools Data · Markaz ${currentUser?.assignedMarkaz || ''}`)
-                  : (isUrdu ? 'سکولز ریکارڈ' : 'Schools Information')}
+                  ? (isUrdu ? `مرکز ${currentUser?.assignedMarkaz || ''} سکولز ریکارڈز` : `Schools Directory · Markaz ${currentUser?.assignedMarkaz || ''}`)
+                  : (isUrdu ? 'سکول کوائف' : 'School Information')}
               </h2>
-              <p className="text-xs text-emerald-300/80 mt-0.5">
-                {isDyDEO
-                  ? (isUrdu ? 'مرکز منتخب کر کے متعلقہ سکولز کا مصدقہ داخلہ، این ایس بی اخراجات اور جمع شدہ ڈیٹا دیکھیں' : 'Select any Markaz name to inspect schools, verify quarterly submissions, and review financial balances.')
-                  : isAEO
-                  ? (isUrdu ? `آپ کے مرکز کے تمام ${schools.length} سکولز کا مصدقہ ڈیٹا اور جمع کروائی گئی فائلز` : `Authenticated records of all ${schools.length} schools in your Markaz jurisdiction.`)
-                  : (isUrdu ? 'آپ کے سکول کے کوائف' : 'School Profile & Records')}
-              </p>
             </div>
           </div>
 
@@ -404,20 +400,6 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({
                   </button>
                 );
               })}
-            </div>
-
-            {/* Quick dropdown fallback */}
-            <div className="flex items-center gap-2 shrink-0">
-              <select
-                value={markazFilter}
-                onChange={e => setMarkazFilter(e.target.value)}
-                className="text-xs bg-emerald-900 border border-emerald-700 text-white rounded-lg py-1 px-3 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer"
-              >
-                <option value="all">All Markazes (Consolidated Tehsil)</option>
-                {markazOptions.map(m => (
-                  <option key={m} value={m}>Markaz {m}</option>
-                ))}
-              </select>
             </div>
           </div>
         )}
@@ -566,8 +548,30 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({
               <tbody className="divide-y divide-slate-100 font-sans">
                 {filteredSchools.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-slate-400">
-                      {isUrdu ? 'کوئی سکول نہیں ملا۔' : 'No schools found matching your search or Markaz filter.'}
+                    <td colSpan={8} className="py-12 text-center text-slate-500">
+                      <SchoolIcon className="w-10 h-10 text-emerald-400 mx-auto mb-2 opacity-80" />
+                      <div className="font-bold text-slate-800 text-sm">
+                        {isUrdu ? 'کوئی سکول درج نہیں ہے' : 'No Schools Registered Yet'}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                        {isAEO
+                          ? (isUrdu
+                              ? `آپ کے مرکز (${currentUser?.assignedMarkaz || ''}) میں ابھی تک کوئی سکول شامل نہیں کیا گیا۔ نیچے دیئے گئے بٹن پر کلک کر کے اپنے مرکز کا پہلا سکول شامل کریں۔`
+                              : `No schools added yet in Markaz ${currentUser?.assignedMarkaz || ''}. Click below to add your cluster schools.`)
+                          : (isUrdu
+                              ? 'ایڈمن اپنے اے ای اوز شامل کریں گے، اور ہر اے ای او لاگ ان کر کے اپنے مرکز کے سکولز کا اندراج کرے گا۔'
+                              : 'Admin will add AEOs in Credentials tab, and each AEO will log in to add their schools.')}
+                      </p>
+                      {canManageSchool && (
+                        <button
+                          type="button"
+                          onClick={handleOpenAdd}
+                          className="mt-4 px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4 text-slate-950" />
+                          <span>{isUrdu ? 'نیا سکول شامل کریں' : '+ Add School'}</span>
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ) : (
@@ -790,7 +794,14 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
-                {filteredSchools.map(school => {
+                {filteredSchools.length === 0 ? (
+                  <tr>
+                    <td colSpan={13} className="py-8 text-center text-slate-400 font-sans">
+                      {isUrdu ? 'کوئی سکول موجود نہیں ہے۔' : 'No schools registered yet.'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredSchools.map(school => {
                   const enr = getEnrollment(school.emisCode);
                   const nsb = getNSB(school.emisCode);
                   const ftf = getFTF(school.emisCode);
@@ -892,7 +903,7 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({
                       </td>
                     </tr>
                   );
-                })}
+                }))}
               </tbody>
             </table>
           </div>
@@ -1087,16 +1098,33 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Markaz / Cluster *
                   </label>
-                  <select
-                    value={modalForm.markaz}
-                    disabled={isAEO && !!currentUser?.assignedMarkaz}
-                    onChange={e => setModalForm({ ...modalForm, markaz: e.target.value })}
-                    className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 bg-white disabled:bg-slate-100"
-                  >
-                    {markazOptions.map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
+                  {isAEO && currentUser?.assignedMarkaz ? (
+                    <input
+                      type="text"
+                      readOnly
+                      value={currentUser.assignedMarkaz}
+                      className="w-full px-3 py-1.5 text-xs font-bold text-emerald-900 border border-slate-300 rounded-lg bg-emerald-50/50 cursor-not-allowed"
+                    />
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        required
+                        list="school-markaz-list"
+                        value={modalForm.markaz}
+                        onChange={e => setModalForm({ ...modalForm, markaz: e.target.value })}
+                        placeholder="Enter or select Markaz name"
+                        className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-600 bg-white"
+                      />
+                      {markazOptions.length > 0 && (
+                        <datalist id="school-markaz-list">
+                          {markazOptions.map(m => (
+                            <option key={m} value={m} />
+                          ))}
+                        </datalist>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {/* Union Council */}
