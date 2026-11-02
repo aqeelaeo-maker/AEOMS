@@ -285,9 +285,11 @@ export const SchoolsListView: React.FC<SchoolsListViewProps> = ({
     setStatusNotice(
       isEditing
         ? (isUrdu ? `سکول "${toSave.name}" کی معلومات اپ ڈیٹ ہو گئیں!` : `School "${toSave.name}" updated successfully!`)
-        : (isUrdu ? `نیا سکول "${toSave.name}" شامل کر دیا گیا۔` : `New school "${toSave.name}" registered successfully!`)
+        : (isUrdu
+            ? `نیا سکول "${toSave.name}" شامل کر دیا گیا! ڈیفالٹ لاگ ان: یوزر نیم ${toSave.emisCode}، پاس ورڈ ${toSave.emisCode}۔`
+            : `New school "${toSave.name}" registered! Default login: Username ${toSave.emisCode}, Password ${toSave.emisCode}.`)
     );
-    setTimeout(() => setStatusNotice(null), 3500);
+    setTimeout(() => setStatusNotice(null), 5000);
   };
 
   return (

@@ -46,6 +46,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [mustChangePasswordModalOpen, setMustChangePasswordModalOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dataVersion, setDataVersion] = useState(0);
+
+  // Listen to changes to schools, users, and AEO accounts to trigger instant re-renders
+  useEffect(() => {
+    const handleStorageUpdate = () => {
+      setDataVersion(v => v + 1);
+    };
+    window.addEventListener('schools_updated', handleStorageUpdate);
+    window.addEventListener('users_updated', handleStorageUpdate);
+    window.addEventListener('aeo_updated', handleStorageUpdate);
+    return () => {
+      window.removeEventListener('schools_updated', handleStorageUpdate);
+      window.removeEventListener('users_updated', handleStorageUpdate);
+      window.removeEventListener('aeo_updated', handleStorageUpdate);
+    };
+  }, []);
 
   // Initialize persistent state and retrieve cached session
   useEffect(() => {
@@ -58,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const latest = getUserByUsername(parsed.username) || (parsed.email ? getUserByUsername(parsed.email) : undefined);
         if (latest) {
           setCurrentUser(latest);
-          if (latest.mustChangePassword) {
+          if (latest.mustChangePassword && latest.role !== 'school_user') {
             setMustChangePasswordModalOpen(true);
           }
           if (latest.role === 'school_user' && latest.schoolEmisCode) {
@@ -134,13 +150,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 4. Default School: Username & Password is EMIS Code
     const isSchool = user.role === 'school_user';
-    const schoolEmis = user.schoolEmisCode || user.username;
+    const schoolEmis = (user.schoolEmisCode || user.username || '').trim();
     const isDefaultSchoolMatch =
-      isSchool && (cleanPass === schoolEmis || cleanPass === user.username);
+      isSchool && (cleanPass === schoolEmis || cleanPass === user.username || (passDigits.length >= 6 && passDigits === schoolEmis.replace(/[^0-9]/g, '')));
 
     // 5. Initial EMIS hash flag match
     const isInitialEmisHashMatch =
-      user.passwordHash === `${schoolEmis}_initial_hash` && cleanPass === schoolEmis;
+      user.passwordHash === `${schoolEmis}_initial_hash` &&
+      (cleanPass === schoolEmis || cleanPass === user.username || (passDigits.length >= 6 && passDigits === schoolEmis.replace(/[^0-9]/g, '')));
 
     if (!isHashMatch && !isDefaultDyDeoMatch && !isDefaultAeoMatch && !isDefaultSchoolMatch && !isInitialEmisHashMatch) {
       return {
@@ -159,7 +176,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSelectedSchoolEmisState(null);
     }
 
-    if (user.mustChangePassword) {
+    // Default credentials of each school are username and passwords = EMIS Code (no blocking password modal)
+    if (user.mustChangePassword && user.role !== 'school_user') {
       setMustChangePasswordModalOpen(true);
     } else {
       setMustChangePasswordModalOpen(false);
@@ -264,8 +282,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isSupervisor = currentUser?.role === 'supervisor';
   const isSchoolUser = currentUser?.role === 'school_user';
 
-  // Each AEO can only view data of his own schools
-  const allowedSchools = getSchoolsForUser(currentUser);
+  // Each AEO can only view data of his own schools, memoized on currentUser and dataVersion so school additions update immediately
+  const allowedSchools = React.useMemo(() => {
+    return getSchoolsForUser(currentUser);
+  }, [currentUser, dataVersion]);
 
   // Target school for editing / viewing:
   const effectiveSchoolEmis = isSchoolUser

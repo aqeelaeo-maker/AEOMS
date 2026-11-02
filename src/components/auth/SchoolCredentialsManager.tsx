@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { School, UserAccount } from '../../types';
@@ -11,7 +11,6 @@ import {
 import {
   KeyRound,
   Shield,
-  School as SchoolIcon,
   Search,
   CheckCircle2,
   AlertTriangle,
@@ -19,7 +18,6 @@ import {
   Eye,
   EyeOff,
   Printer,
-  Edit2,
   Sparkles,
   Phone,
   User,
@@ -35,13 +33,31 @@ interface SchoolCredentialsManagerProps {
 }
 
 export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> = ({ hideTopBanner = false }) => {
-  const { isDyDEO, isAEO, currentUser, allowedSchools } = useAuth();
+  const { isDyDEO, isAEO, currentUser } = useAuth();
   const { isUrdu } = useLanguage();
 
+  const [schools, setSchools] = useState<School[]>(() => getSchools());
+  const [users, setUsers] = useState<UserAccount[]>(() => getUsers());
   const [searchQuery, setSearchQuery] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [quickResetTargetSchool, setQuickResetTargetSchool] = useState<School | null>(null);
+
+  const refreshData = () => {
+    setSchools(getSchools());
+    setUsers(getUsers());
+  };
+
+  useEffect(() => {
+    refreshData();
+    const handleUpdate = () => refreshData();
+    window.addEventListener('schools_updated', handleUpdate);
+    window.addEventListener('users_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('schools_updated', handleUpdate);
+      window.removeEventListener('users_updated', handleUpdate);
+    };
+  }, []);
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -62,10 +78,8 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
 
   // Scoped strictly to the AEO's assigned Markaz (or all if Dy. DEO)
   const scopedSchools = isAEO && currentUser?.assignedMarkaz
-    ? allowedSchools.filter(s => s.markaz && s.markaz.trim().toLowerCase() === currentUser.assignedMarkaz!.trim().toLowerCase())
-    : allowedSchools;
-
-  const users = getUsers();
+    ? schools.filter(s => s.markaz && s.markaz.trim().toLowerCase() === currentUser.assignedMarkaz!.trim().toLowerCase())
+    : schools;
 
   const handleOpenSetCredentials = (school: School) => {
     setSelectedSchool(school);
@@ -112,11 +126,12 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
       return;
     }
 
+    refreshData();
     setModalOpen(false);
     setNotice(
       isUrdu
-        ? `سکول "${selectedSchool.name}" (EMIS: ${selectedSchool.emisCode}) کے لاگ ان اسناد کامیابی سے محفوظ ہو گئے۔`
-        : `Login credentials successfully set for ${selectedSchool.name} (EMIS: ${selectedSchool.emisCode}).`
+        ? `سکول "${selectedSchool.name}" (EMIS: ${selectedSchool.emisCode}) کے لاگ ان اسناد محفوظ ہو گئے۔`
+        : `Login credentials successfully configured for ${selectedSchool.name} (EMIS: ${selectedSchool.emisCode}).`
     );
     setTimeout(() => setNotice(null), 3500);
   };
@@ -132,9 +147,10 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
       return;
     }
 
+    refreshData();
     setNotice(
       isUrdu
-        ? `پاس ورڈ ری سیٹ ہو گیا۔ عارضی پاس ورڈ اب ${school.emisCode} ہے۔`
+        ? `پاس ورڈ ری سیٹ ہو گیا۔ لاگ ان پاس ورڈ اب EMIS کوڈ ${school.emisCode} ہے۔`
         : `Password reset to default EMIS code ${school.emisCode}.`
     );
     setQuickResetTargetSchool(null);
@@ -145,12 +161,13 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
     s =>
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.emisCode.includes(searchQuery) ||
-      s.headTeacherName.toLowerCase().includes(searchQuery.toLowerCase())
+      (s.markaz && s.markaz.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (s.headTeacherName && s.headTeacherName.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (
     <div className="space-y-6">
-      {/* Top Directive Banner (only if not compact/inside hub) */}
+      {/* Top Directive Banner */}
       {!hideTopBanner && (
         <div className="bg-emerald-900 text-white rounded-xl p-5 sm:p-6 border border-emerald-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-3.5">
@@ -171,8 +188,8 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
               </h2>
               <p className="text-xs text-emerald-200/90 mt-0.5">
                 {isUrdu
-                  ? `مرکز ${currentUser?.assignedMarkaz || ''} کے تمام سکولوں کے لاگ ان اسناد اسی مرکز کے اے ای او کے ذریعے جاری اور تبدیل کیے جاتے ہیں۔`
-                  : `Login credentials for each school in Markaz ${currentUser?.assignedMarkaz || ''} are issued and configured by the respective AEO.`}
+                  ? 'ہر سکول کے ڈیفالٹ لاگ ان اسناد یوزر نیم اور پاس ورڈ دونوں سکول کا EMIS کوڈ ہیں۔'
+                  : 'Default login credentials for each school are: Username = EMIS Code and Password = EMIS Code.'}
               </p>
             </div>
           </div>
@@ -190,10 +207,17 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
         </div>
       )}
 
-      {/* Search Bar */}
+      {/* Search Bar & Default Credentials Notice */}
       <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="text-xs font-semibold text-slate-700">
-          {isUrdu ? 'سکولز کی لاگ ان تفصیلات' : 'Schools Account Roster in Your Markaz'}
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-lg text-xs font-semibold">
+            <Check className="w-3.5 h-3.5 text-emerald-600" />
+            <span>
+              {isUrdu
+                ? 'ڈیفالٹ اسناد: یوزر نیم = EMIS کوڈ | پاس ورڈ = EMIS کوڈ'
+                : 'Default Policy: Username = EMIS Code | Password = EMIS Code'}
+            </span>
+          </span>
         </div>
 
         <div className="relative w-full sm:w-72">
@@ -224,9 +248,10 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
             <thead className="bg-slate-50 text-slate-700 font-semibold uppercase tracking-wider border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4">{isUrdu ? 'EMIS کوڈ' : 'EMIS Code'}</th>
-                <th className="py-3 px-4">{isUrdu ? 'سکول کا نام' : 'School Name'}</th>
+                <th className="py-3 px-4">{isUrdu ? 'سکول کا نام و مرکز' : 'School Name & Markaz'}</th>
                 <th className="py-3 px-4">{isUrdu ? 'ہیڈ ٹیچر و رابطہ' : 'Head Teacher & Contact'}</th>
                 <th className="py-3 px-4">{isUrdu ? 'سرکاری یوزر نیم' : 'Login Username'}</th>
+                <th className="py-3 px-4">{isUrdu ? 'ڈیفالٹ پاس ورڈ' : 'Default Password'}</th>
                 <th className="py-3 px-4">{isUrdu ? 'پاس ورڈ کی حالت' : 'Password Status'}</th>
                 <th className="py-3 px-4 text-right">{isUrdu ? 'کارروائی' : 'Actions'}</th>
               </tr>
@@ -234,7 +259,7 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
             <tbody className="divide-y divide-slate-100">
               {filteredSchools.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-500 text-xs">
+                  <td colSpan={7} className="py-8 text-center text-slate-500 text-xs">
                     {isUrdu ? 'اس مرکز میں کوئی سکول نہیں ملا۔' : 'No schools found for your Markaz.'}
                   </td>
                 </tr>
@@ -243,14 +268,18 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
                   const schoolUser = users.find(
                     u => u.username === school.emisCode || u.schoolEmisCode === school.emisCode
                   );
-                  const isInitial = schoolUser?.mustChangePassword;
+                  const isCustomPassword =
+                    schoolUser?.passwordHash &&
+                    schoolUser.passwordHash !== `${school.emisCode}_initial_hash`;
 
                   return (
                     <tr key={school.emisCode} className="hover:bg-slate-50/80 transition-colors">
+                      {/* EMIS Code */}
                       <td className="py-3 px-4 font-mono font-bold text-emerald-800">
                         {school.emisCode}
                       </td>
 
+                      {/* School Name & Markaz */}
                       <td className="py-3 px-4">
                         <div className="font-semibold text-slate-900">{school.name}</div>
                         <div className="text-[10px] text-slate-500">
@@ -258,41 +287,54 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
                         </div>
                       </td>
 
+                      {/* Head Teacher & Contact */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1.5 font-medium text-slate-800">
                           <User className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{school.headTeacherName}</span>
+                          <span>{school.headTeacherName || 'Head Teacher'}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-slate-500 font-mono text-[11px] mt-0.5">
                           <Phone className="w-3 h-3 text-slate-400" />
-                          <span>{school.headTeacherPhone}</span>
+                          <span>{school.headTeacherPhone || '—'}</span>
                         </div>
                       </td>
 
-                      <td className="py-3 px-4 font-mono font-bold text-slate-700">
-                        {schoolUser?.username || school.emisCode}
+                      {/* Official Username */}
+                      <td className="py-3 px-4">
+                        <code className="px-2 py-0.5 bg-slate-100 border border-slate-200 rounded font-mono font-bold text-slate-900">
+                          {schoolUser?.username || school.emisCode}
+                        </code>
                       </td>
 
+                      {/* Default Password */}
                       <td className="py-3 px-4">
-                        {isInitial ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                            <span>Initial Temporary (EMIS)</span>
+                        <code className="px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded font-mono font-bold">
+                          {school.emisCode}
+                        </code>
+                      </td>
+
+                      {/* Password Status */}
+                      <td className="py-3 px-4">
+                        {isCustomPassword ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-50 text-purple-800 border border-purple-200">
+                            <span>Custom Secured</span>
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
                             <Check className="w-3 h-3 text-emerald-600" />
-                            <span>Custom Secured</span>
+                            <span>Default (EMIS Code)</span>
                           </span>
                         )}
                       </td>
 
+                      {/* Actions */}
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
                             onClick={() => handleOpenSetCredentials(school)}
-                            className="px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors flex items-center gap-1 border border-emerald-200"
-                            title={isUrdu ? 'اسناد سیٹ کریں' : 'Set Credentials'}
+                            className="px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors flex items-center gap-1 border border-emerald-200 cursor-pointer"
+                            title={isUrdu ? 'اسناد تبدیل کریں' : 'Set / Update Credentials'}
                           >
                             <KeyRound className="w-3.5 h-3.5" />
                             <span>{isUrdu ? 'اسناد سیٹ کریں' : 'Set Credentials'}</span>
@@ -310,7 +352,7 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
                           <button
                             type="button"
                             onClick={() => setPrintSlipSchool({ school, user: schoolUser })}
-                            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                             title={isUrdu ? 'سرکاری اسناد سلپ پرنٹ کریں' : 'Print Official Credentials Slip'}
                           >
                             <Printer className="w-4 h-4" />
@@ -345,6 +387,7 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => setModalOpen(false)}
                 className="text-emerald-200 hover:text-white p-1 rounded-lg"
               >
@@ -362,7 +405,7 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  {isUrdu ? 'سرکاری لاگ ان یوزر نیم' : 'Official Login Username (Default: EMIS)'}
+                  {isUrdu ? 'سرکاری لاگ ان یوزر نیم' : 'Official Login Username (Default: EMIS Code)'}
                 </label>
                 <input
                   type="text"
@@ -376,21 +419,21 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold text-slate-700">
-                    {isUrdu ? 'نیا پاس ورڈ سیٹ کریں' : 'Set New Password'}
+                    {isUrdu ? 'نیا پاس ورڈ سیٹ کریں' : 'Set Password'}
                   </label>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={handleUseDefaultEmis}
-                      className="text-[10px] text-emerald-800 hover:underline font-semibold"
+                      className="text-[10px] text-emerald-800 hover:underline font-semibold cursor-pointer"
                     >
-                      {isUrdu ? 'EMIS کوڈ رکھیں' : 'Use EMIS Code'}
+                      {isUrdu ? 'ڈیفالٹ EMIS کوڈ رکھیں' : 'Use Default EMIS Code'}
                     </button>
                     <span>·</span>
                     <button
                       type="button"
                       onClick={handleGeneratePassword}
-                      className="text-[10px] text-emerald-800 hover:underline font-semibold flex items-center gap-0.5"
+                      className="text-[10px] text-emerald-800 hover:underline font-semibold flex items-center gap-0.5 cursor-pointer"
                     >
                       <Sparkles className="w-3 h-3 text-amber-500" />
                       <span>{isUrdu ? 'خودکار مضبوط پاس ورڈ' : 'Generate Strong'}</span>
@@ -403,13 +446,13 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
                     type={showPassword ? 'text' : 'password'}
                     value={formData.passwordPlain}
                     onChange={e => setFormData({ ...formData, passwordPlain: e.target.value })}
-                    placeholder={isUrdu ? 'نیا پاس ورڈ درج کریں یا خالی چھوڑیں...' : 'Enter new password or click generate'}
+                    placeholder={isUrdu ? 'نیا پاس ورڈ درج کریں یا EMIS کوڈ رکھیں...' : `Default: ${selectedSchool.emisCode}`}
                     className="w-full pl-3 pr-9 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 font-mono bg-white"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                    className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -451,13 +494,13 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                 >
                   {isUrdu ? 'منسوخ' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-semibold bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+                  className="px-4 py-2 text-xs font-semibold bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>{isUrdu ? 'اسناد محفوظ کریں' : 'Save Credentials'}</span>
@@ -510,22 +553,30 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
               </div>
               <div className="flex justify-between border-b pb-1.5">
                 <span className="text-slate-500 font-semibold">Head Teacher:</span>
-                <span className="font-semibold text-slate-800">{printSlipSchool.school.headTeacherName} ({printSlipSchool.school.headTeacherPhone})</span>
+                <span className="font-semibold text-slate-800">{printSlipSchool.school.headTeacherName || 'Head Teacher'} ({printSlipSchool.school.headTeacherPhone || '—'})</span>
               </div>
               <div className="flex justify-between border-b pb-1.5">
                 <span className="text-slate-500 font-semibold">Official Login Username:</span>
                 <span className="font-mono font-bold text-slate-900">{printSlipSchool.user?.username || printSlipSchool.school.emisCode}</span>
               </div>
               <div className="flex justify-between border-b pb-1.5">
-                <span className="text-slate-500 font-semibold">Initial Password Policy:</span>
-                <span className="font-mono text-emerald-800">
-                  {printSlipSchool.user?.mustChangePassword ? 'Same as 8-digit EMIS Code (Must change on first login)' : 'Custom Password Configured by AEO'}
+                <span className="text-slate-500 font-semibold">Login Password:</span>
+                <span className="font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  {printSlipSchool.user?.passwordHash && printSlipSchool.user.passwordHash !== `${printSlipSchool.school.emisCode}_initial_hash`
+                    ? 'Custom Password Configured by AEO'
+                    : printSlipSchool.school.emisCode}
+                </span>
+              </div>
+              <div className="flex justify-between border-b pb-1.5">
+                <span className="text-slate-500 font-semibold">Credential Policy:</span>
+                <span className="text-slate-700">
+                  Default credentials are Username: EMIS Code and Password: EMIS Code.
                 </span>
               </div>
             </div>
 
-            <div className="mt-5 p-3 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900">
-              <strong>Notice for Head Teacher:</strong> Please keep these login credentials strictly confidential. All quarterly data submissions, NSB funds, FTF registers, and staff records submitted under this account are legally binding.
+            <div className="mt-5 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-[11px] text-emerald-900">
+              <strong>Notice for Head Teacher:</strong> Use your 8-digit EMIS code as both Username and Password to log in directly. All quarterly data submissions, NSB funds, FTF registers, and staff records submitted under this account are legally binding.
             </div>
 
             <div className="mt-6 pt-4 border-t flex items-center justify-between">
@@ -536,14 +587,14 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
                 <button
                   type="button"
                   onClick={() => setPrintSlipSchool(null)}
-                  className="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg"
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
                 >
                   Close
                 </button>
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="px-4 py-1.5 text-xs font-semibold bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg shadow-sm flex items-center gap-1.5"
+                  className="px-4 py-1.5 text-xs font-semibold bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   <span>Print Slip</span>
@@ -560,8 +611,8 @@ export const SchoolCredentialsManager: React.FC<SchoolCredentialsManagerProps> =
         title={isUrdu ? 'سکول پاس ورڈ ری سیٹ کریں' : 'Reset School Password'}
         message={
           isUrdu
-            ? `کیا آپ واقعی اس سکول "${quickResetTargetSchool?.name}" کا پاس ورڈ واپس ابتدائی عارضی EMIS کوڈ (${quickResetTargetSchool?.emisCode}) پر ری سیٹ کرنا چاہتے ہیں؟`
-            : `Reset password for "${quickResetTargetSchool?.name}" back to default initial EMIS code (${quickResetTargetSchool?.emisCode})?`
+            ? `کیا آپ واقعی اس سکول "${quickResetTargetSchool?.name}" کا پاس ورڈ واپس ڈیفالٹ EMIS کوڈ (${quickResetTargetSchool?.emisCode}) پر ری سیٹ کرنا چاہتے ہیں؟`
+            : `Reset password for "${quickResetTargetSchool?.name}" back to default EMIS code (${quickResetTargetSchool?.emisCode})?`
         }
         confirmText={isUrdu ? 'پاس ورڈ ری سیٹ کریں' : 'Reset to EMIS'}
         cancelText={isUrdu ? 'منسوخ کریں' : 'Cancel'}

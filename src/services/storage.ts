@@ -198,25 +198,48 @@ export function saveSchool(school: School, user: UserAccount): void {
     schools[index] = school;
   } else {
     schools.push(school);
-    // Automatically provision initial school user account with temporary password = EMIS code
-    const users = getUsers();
-    if (!users.some(u => u.username === school.emisCode)) {
-      users.push({
-        id: 'user_' + school.emisCode,
-        username: school.emisCode,
-        displayName: `Head Teacher, ${school.name}`,
-        role: 'school_user',
-        schoolEmisCode: school.emisCode,
-        mustChangePassword: true,
-        passwordHash: `${school.emisCode}_initial_hash`,
-        createdAt: new Date().toISOString()
-      });
-      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-      syncToFirestore('users', 'user_' + school.emisCode, users[users.length - 1]);
-    }
   }
   localStorage.setItem(STORAGE_KEYS.SCHOOLS, JSON.stringify(schools));
   syncToFirestore('schools', school.emisCode, school);
+
+  // Automatically provision and guarantee school user credentials with Username = EMIS Code and Password = EMIS Code
+  const users = getUsers();
+  const existingUserIdx = users.findIndex(
+    u => u.username === school.emisCode || u.schoolEmisCode === school.emisCode
+  );
+
+  const headTeacherNameDisplay = school.headTeacherName
+    ? `Head Teacher, ${school.name} (${school.headTeacherName})`
+    : `Head Teacher, ${school.name}`;
+
+  if (existingUserIdx >= 0) {
+    users[existingUserIdx].schoolEmisCode = school.emisCode;
+    users[existingUserIdx].role = 'school_user';
+    users[existingUserIdx].displayName = headTeacherNameDisplay;
+    if (school.headTeacherPhone) {
+      users[existingUserIdx].phone = school.headTeacherPhone;
+    }
+    if (!users[existingUserIdx].passwordHash) {
+      users[existingUserIdx].passwordHash = `${school.emisCode}_initial_hash`;
+    }
+    // Default credentials of each school are username and password = EMIS code (no forced change password modal)
+    users[existingUserIdx].mustChangePassword = false;
+  } else {
+    users.push({
+      id: 'user_' + school.emisCode,
+      username: school.emisCode,
+      displayName: headTeacherNameDisplay,
+      role: 'school_user',
+      schoolEmisCode: school.emisCode,
+      phone: school.headTeacherPhone || '',
+      mustChangePassword: false,
+      passwordHash: `${school.emisCode}_initial_hash`,
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+  syncToFirestore('users', 'user_' + school.emisCode, users.find(u => u.username === school.emisCode));
 
   addAuditLog(
     user.id,
@@ -224,13 +247,14 @@ export function saveSchool(school: School, user: UserAccount): void {
     user.role,
     index >= 0 ? 'Update School Profile' : 'Register New School',
     'Schools',
-    `Saved details for ${school.name} (EMIS: ${school.emisCode})`,
+    `Saved details for ${school.name} (EMIS: ${school.emisCode}). Credentials active: Username: ${school.emisCode}, Default Password: ${school.emisCode}`,
     school.emisCode,
     school.name
   );
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('schools_updated', { detail: { school } }));
+    window.dispatchEvent(new CustomEvent('users_updated', { detail: { users } }));
   }
 }
 
@@ -262,6 +286,7 @@ export function deleteSchool(emisCode: string, user: UserAccount): boolean {
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('schools_updated', { detail: { emisCode } }));
+    window.dispatchEvent(new CustomEvent('users_updated', { detail: { users } }));
   }
 
   return true;
@@ -270,11 +295,47 @@ export function deleteSchool(emisCode: string, user: UserAccount): boolean {
 // Users & Authentication
 export function getUsers(): UserAccount[] {
   initializeStorage();
+  let users: UserAccount[] = [];
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+    users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
   } catch {
-    return initialUsers;
+    users = [...initialUsers];
   }
+
+  // Defensive reconciliation: Ensure EVERY school in storage has its default login credentials
+  // (Username = EMIS Code, Password = EMIS Code)
+  try {
+    const schoolsJson = localStorage.getItem(STORAGE_KEYS.SCHOOLS);
+    if (schoolsJson) {
+      const schools: School[] = JSON.parse(schoolsJson);
+      let changed = false;
+      for (const s of schools) {
+        if (!s.emisCode) continue;
+        const exists = users.some(u => u.username === s.emisCode || u.schoolEmisCode === s.emisCode);
+        if (!exists) {
+          users.push({
+            id: 'user_' + s.emisCode,
+            username: s.emisCode,
+            displayName: s.headTeacherName ? `Head Teacher, ${s.name} (${s.headTeacherName})` : `Head Teacher, ${s.name}`,
+            role: 'school_user',
+            schoolEmisCode: s.emisCode,
+            phone: s.headTeacherPhone || '',
+            mustChangePassword: false,
+            passwordHash: `${s.emisCode}_initial_hash`,
+            createdAt: new Date().toISOString()
+          });
+          changed = true;
+        }
+      }
+      if (changed) {
+        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+      }
+    }
+  } catch (err) {
+    console.warn('Reconcile school users note:', err);
+  }
+
+  return users;
 }
 
 export function getUserByUsername(identifier: string): UserAccount | undefined {
@@ -284,7 +345,7 @@ export function getUserByUsername(identifier: string): UserAccount | undefined {
   const qDigits = q.replace(/[^0-9]/g, '');
   const users = getUsers();
 
-  return users.find(u => {
+  const found = users.find(u => {
     // Exact username match (case-insensitive)
     if (u.username.toLowerCase() === qLower) return true;
 
@@ -313,6 +374,36 @@ export function getUserByUsername(identifier: string): UserAccount | undefined {
 
     return false;
   });
+
+  if (found) return found;
+
+  // Defensive fallback: If identifier matches an existing school's EMIS code, auto-create its school_user
+  const schools = getSchools();
+  const matchedSchool = schools.find(s => s.emisCode === q || (qDigits.length >= 6 && s.emisCode === qDigits));
+  if (matchedSchool) {
+    const newUser: UserAccount = {
+      id: 'user_' + matchedSchool.emisCode,
+      username: matchedSchool.emisCode,
+      displayName: matchedSchool.headTeacherName
+        ? `Head Teacher, ${matchedSchool.name} (${matchedSchool.headTeacherName})`
+        : `Head Teacher, ${matchedSchool.name}`,
+      role: 'school_user',
+      schoolEmisCode: matchedSchool.emisCode,
+      phone: matchedSchool.headTeacherPhone || '',
+      mustChangePassword: false,
+      passwordHash: `${matchedSchool.emisCode}_initial_hash`,
+      createdAt: new Date().toISOString()
+    };
+    const updatedUsers = [...users, newUser];
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
+    syncToFirestore('users', newUser.id, newUser);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('users_updated', { detail: { users: updatedUsers } }));
+    }
+    return newUser;
+  }
+
+  return undefined;
 }
 
 export async function updateUserPassword(userId: string, newPasswordPlain: string): Promise<boolean> {
@@ -336,6 +427,10 @@ export async function updateUserPassword(userId: string, newPasswordPlain: strin
     user.schoolEmisCode
   );
 
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('users_updated', { detail: { users } }));
+  }
+
   return true;
 }
 
@@ -345,7 +440,7 @@ export async function resetSchoolPasswordToDefault(emisCode: string, adminUser: 
   if (!user) return false;
 
   user.passwordHash = `${emisCode}_initial_hash`;
-  user.mustChangePassword = true;
+  user.mustChangePassword = false;
   localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
   syncToFirestore('users', user.id, user);
 
@@ -358,6 +453,10 @@ export async function resetSchoolPasswordToDefault(emisCode: string, adminUser: 
     `Reset initial password for school ${emisCode} to default EMIS code.`,
     emisCode
   );
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('users_updated', { detail: { users } }));
+  }
 
   return true;
 }
@@ -455,6 +554,7 @@ export async function saveAeoAccount(
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('aeo_updated', { detail: { aeo: updatedAeo } }));
+    window.dispatchEvent(new CustomEvent('users_updated', { detail: { users } }));
   }
 
   return { success: true, aeo: updatedAeo };
@@ -496,6 +596,7 @@ export async function resetAeoPasswordToDefaultCnic(
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('aeo_updated', { detail: { aeoId } }));
+    window.dispatchEvent(new CustomEvent('users_updated', { detail: { users } }));
   }
 
   return { success: true };
@@ -536,6 +637,7 @@ export async function deleteAeoAccount(
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('aeo_updated', { detail: { aeoId } }));
+    window.dispatchEvent(new CustomEvent('users_updated', { detail: { users: updatedUsers } }));
   }
 
   return { success: true };
@@ -628,6 +730,11 @@ export async function saveSchoolCredentials(
     emisCode,
     school.name
   );
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('users_updated', { detail: { users, updatedUser } }));
+    window.dispatchEvent(new CustomEvent('schools_updated', { detail: { school } }));
+  }
 
   return { success: true };
 }
